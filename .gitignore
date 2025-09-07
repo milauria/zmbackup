@@ -2,3 +2,6 @@ OLD/
 *.old
 .idea/
 deprecation
+.coverage
+coverage.xml
+__pycache__/
