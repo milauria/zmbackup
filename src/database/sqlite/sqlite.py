@@ -28,7 +28,7 @@ class SQLiteManager:
             cursor = conn.cursor()
             cursor.execute(
                 SqlManipulationStrings.INSERT_SESSION_SQL,
-                (str(session.session_id), json.dumps(session.to_dict())),
+                (str(session.session_id), json.dumps(session.to_dict()), session.size, session.description),
             )
             conn.commit()
 
@@ -36,7 +36,9 @@ class SQLiteManager:
         sessions = self.get_sessions(SessionFilter(session_id=session_id))
         return sessions[0] if sessions else None
 
-    def get_sessions(self, filters: SessionFilter) -> List[Session]:
+    def get_sessions(self, filters: Optional[SessionFilter] = None) -> List[Session]:
+        if filters is None:
+            filters = SessionFilter()
         with self._connection as conn:
             cursor = conn.cursor()
             query, params = filters.build_select_query()
@@ -49,7 +51,7 @@ class SQLiteManager:
             cursor = conn.cursor()
             cursor.execute(
                 SqlManipulationStrings.UPDATE_SESSION_SQL,
-                (json.dumps(session.to_dict()), str(session.session_id)),
+                (json.dumps(session.to_dict()), session.size, session.description, str(session.session_id)),
             )
             conn.commit()
 

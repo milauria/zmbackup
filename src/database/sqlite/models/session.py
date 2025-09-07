@@ -11,6 +11,8 @@ class Session:
     session_id: uuid.UUID = field(default_factory=uuid.uuid4)
     starting_date: datetime.datetime = field(default_factory=datetime.datetime.now)
     end_date: datetime.datetime = field(default_factory=datetime.datetime.now)
+    size: int = 0
+    description: str = ""
     accounts: List[Account] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -18,6 +20,8 @@ class Session:
             "session_id": str(self.session_id),
             "starting_date": self.starting_date.isoformat(),
             "end_date": self.end_date.isoformat(),
+            "size": self.size,
+            "description": self.description,
             "accounts": [account.__dict__ for account in self.accounts],
         }
 
@@ -27,5 +31,7 @@ class Session:
             session_id=uuid.UUID(data["session_id"]),
             starting_date=datetime.datetime.fromisoformat(data["starting_date"]),
             end_date=datetime.datetime.fromisoformat(data["end_date"]),
+            size=data.get("size", 0),
+            description=data.get("description", ""),
             accounts=[Account(**account_data) for account_data in data["accounts"]],
         )

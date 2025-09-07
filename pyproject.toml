@@ -21,3 +21,18 @@ testpaths = ["tests"]
 
 [tool.coverage.run]
 omit = ["*/__init__.py"]
+
+[tool.setuptools]
+packages = ["src"]
+
+[project]
+name = "zmbackup"
+version = "2.0.0"
+description = "A CLI tool for managing zmbackup sessions."
+dependencies = [
+    "click",
+    "prettytable",
+]
+
+[project.scripts]
+zmbackup = "src.cli:cli"
