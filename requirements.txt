@@ -1,14 +1,17 @@
-black==25.1.0
+# Main dependencies
 click==8.2.1
-iniconfig==2.1.0
-isort==6.0.1
-mypy==1.17.1
-mypy_extensions==1.1.0
-packaging==25.0
-pathspec==0.12.1
-platformdirs==4.4.0
-pluggy==1.6.0
-Pygments==2.19.2
-pytest==8.4.2
-typing_extensions==4.15.0
-pytest-cov==6.3.0
+
+# Test dependencies
+black==25.1.0             # Code formatter
+iniconfig==2.1.0          # Brainless ini config parser (used by pytest)
+isort==6.0.1              # Sorts imports
+mypy==1.17.1              # Static type checker
+mypy_extensions==1.1.0    # Extensions for mypy
+packaging==25.0           # Core utilities for Python packages
+pathspec==0.12.1          # Utility library for gitignore-style pattern matching
+platformdirs==4.4.0       # Deterministic platform-specific directory locations
+pluggy==1.6.0             # Plugin system for pytest
+Pygments==2.19.2          # Syntax highlighter
+pytest==8.4.2             # Testing framework
+pytest-cov==6.3.0         # Coverage plugin for pytest
+typing_extensions==4.15.0 # Backport of new typing features

@@ -7,5 +7,6 @@ coverage.xml
 __pycache__/
 .venv
 .pytest_cache
+session.db
 .mypy_cache
 zmbackup.egg-info/
