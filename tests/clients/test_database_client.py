@@ -1,13 +1,6 @@
 import pytest
 from datetime import datetime, timedelta
-from src.clients.database_client import DatabaseClient
 from src.database.models import BackupSession
-
-@pytest.fixture
-def db_client():
-    """Fixture for DatabaseClient using in-memory SQLite."""
-    client = DatabaseClient("sqlite:///:memory:")
-    return client
 
 def test_create_session(db_client):
     """Test session creation."""

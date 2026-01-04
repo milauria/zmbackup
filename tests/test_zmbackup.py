@@ -1,27 +1,22 @@
 import pytest
-from click.testing import CliRunner
 from unittest.mock import patch, MagicMock
 from src.zmbackup import cli
 from src.database.models import BackupSession
 from datetime import datetime
 
-@pytest.fixture
-def runner():
-    return CliRunner()
-
 @patch("src.zmbackup.DatabaseClient")
-def test_list_command_empty(mock_client_class, runner):
+def test_list_command_empty(mock_client_class, cli_runner):
     """Test list command when no sessions exist."""
     mock_client = mock_client_class.return_value
     mock_client.list_sessions.return_value = []
     
-    result = runner.invoke(cli, ["list"])
+    result = cli_runner.invoke(cli, ["list"])
     
     assert result.exit_code == 0
     assert "No backup sessions found." in result.output
 
 @patch("src.zmbackup.DatabaseClient")
-def test_list_command_with_data(mock_client_class, runner):
+def test_list_command_with_data(mock_client_class, cli_runner):
     """Test list command with sessions."""
     mock_client = mock_client_class.return_value
     
@@ -42,7 +37,7 @@ def test_list_command_with_data(mock_client_class, runner):
     
     mock_client.list_sessions.return_value = [s1, s2]
     
-    result = runner.invoke(cli, ["list"])
+    result = cli_runner.invoke(cli, ["list"])
     
     assert result.exit_code == 0
     assert "full-20260101" in result.output
@@ -52,12 +47,12 @@ def test_list_command_with_data(mock_client_class, runner):
     assert "N/A" in result.output # for missing ending/size
 
 @patch("src.zmbackup.DatabaseClient")
-def test_list_command_error(mock_client_class, runner):
+def test_list_command_error(mock_client_class, cli_runner):
     """Test list command error handling."""
     mock_client = mock_client_class.return_value
     mock_client.list_sessions.side_effect = Exception("DB Error")
     
-    result = runner.invoke(cli, ["list"])
+    result = cli_runner.invoke(cli, ["list"])
     
     assert result.exit_code == 1
     assert "Error accessing database: DB Error" in result.output
