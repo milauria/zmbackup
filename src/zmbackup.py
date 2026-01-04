@@ -37,11 +37,18 @@ import sys
 from typing import List, Optional
 
 from lib.constants import ZMBACKUP_VERSION
+from operations.init import run_init
 
 @click.group(context_settings=dict(help_option_names=['-h', '--help']))
 def cli():
     """zmbackup CLI for Zimbra backups and restores."""
     pass
+
+@cli.command()
+@click.option('--config-path', default="/etc/zmbackup/zmbackup.conf", help='Path to the configuration file')
+def init(config_path):
+    """Initialize the zmbackup configuration."""
+    run_init(config_path)
 
 @cli.command()
 @click.option('--full', '-f', is_flag=True, help='Full Backup mode')
