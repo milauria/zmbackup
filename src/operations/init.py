@@ -9,6 +9,11 @@ def validate_email(value):
         return value
     raise click.BadParameter(f"'{value}' is not a valid email address.")
 
+def validate_address(value):
+    if validators.ip_address.ipv4(value) or validators.ip_address.ipv6(value) or validators.domain(value):
+        return value
+    raise click.BadParameter(f"'{value}' is not a valid IP or FQDN.")
+
 def run_init(config_path: str = "/etc/zmbackup/zmbackup.conf"):
     """
     Initialize the zmbackup configuration by prompting the user for values
@@ -29,10 +34,10 @@ def run_init(config_path: str = "/etc/zmbackup/zmbackup.conf"):
     
     config_values['ose_user'] = click.prompt("Zimbra backup user", default="zimbra")
     config_values['ose_default_bkp_dir'] = click.prompt("Backup directory", default="/opt/zimbra/backup")
-    config_values['ose_install_address'] = click.prompt("LDAP server address", default="127.0.0.1")
+    config_values['ose_install_address'] = click.prompt("LDAP server address", default="127.0.0.1", value_proc=validate_address)
     config_values['ose_install_ldappass'] = click.prompt("LDAP admin password", hide_input=True)
     config_values['zmbkp_mail_alert'] = click.prompt("Email for alerts", value_proc=validate_email)
-    config_values['zmbkp_mail_sender'] = click.prompt("Email sender address", default="root@localhost", value_proc=validate_email)
+    config_values['zmbkp_mail_sender'] = click.prompt("Email sender address", value_proc=validate_email)
     config_values['max_parallel_process'] = click.prompt("Maximum parallel processes", default=3, type=int)
     config_values['rotate_time'] = click.prompt("Retention time (days)", default=30, type=int)
     config_values['lock_backup'] = click.prompt("Lock backup (true/false)", default="true", type=click.Choice(["true", "false"], case_sensitive=False)).lower()

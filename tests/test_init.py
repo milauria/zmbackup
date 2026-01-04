@@ -135,3 +135,17 @@ def test_validate_email_failure():
     with pytest.raises(click.BadParameter) as excinfo:
         validate_email("invalid-email")
     assert "'invalid-email' is not a valid email address." in str(excinfo.value)
+
+@pytest.mark.parametrize("address", ["127.0.0.1", "::1", "ldap.example.com", "server1.local"])
+def test_validate_address_success(address):
+    """Test validate_address with valid IP or FQDN."""
+    from src.operations.init import validate_address
+    assert validate_address(address) == address
+
+@pytest.mark.parametrize("address", ["invalid_address", "http://server", "1.2.3.4.5"])
+def test_validate_address_failure(address):
+    """Test validate_address with invalid address."""
+    from src.operations.init import validate_address
+    with pytest.raises(click.BadParameter) as excinfo:
+        validate_address(address)
+    assert f"'{address}' is not a valid IP or FQDN." in str(excinfo.value)
