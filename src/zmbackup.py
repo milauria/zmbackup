@@ -35,9 +35,12 @@
 import click
 import sys
 from typing import List, Optional
+from datetime import datetime
+from prettytable import PrettyTable
 
 from lib.constants import ZMBACKUP_VERSION
 from operations.init import run_init
+from clients.database_client import DatabaseClient
 
 @click.group(context_settings=dict(help_option_names=['-h', '--help']))
 def cli():
@@ -137,9 +140,36 @@ def restore(restoreonaccount, mail_flag, distributionlist, alias, ldap, signatur
 @cli.command()
 def list():
     """List backup sessions."""
-    click.echo(f"{'Session Name':<20} | {'Start':<20} | {'Ending':<20} | {'Size':<10} | {'Description'}")
-    click.echo("-" * 85)
-    click.echo(f"{'full-20260104':<20} | {'2026-01-04 00:00':<20} | {'2026-01-04 01:00':<20} | {'50GB':<10} | {'Monthly Full Backup'}")
+    db_path = "sqlite:///zmbackup_sessions.db"
+    
+    try:
+        client = DatabaseClient(db_path)
+        sessions = client.list_sessions()
+        
+        if not sessions:
+            click.echo("No backup sessions found.")
+            return
+
+        table = PrettyTable()
+        table.field_names = ["Session Name", "Start", "Ending", "Size", "Description"]
+        table.align = "l"  # Left align columns
+        
+        for s in sessions:
+            start_str = s.start.strftime("%Y-%m-%d %H:%M") if s.start else "N/A"
+            ending_str = s.ending.strftime("%Y-%m-%d %H:%M") if s.ending else "N/A"
+            table.add_row([
+                s.session_name,
+                start_str,
+                ending_str,
+                s.size or "N/A",
+                s.description
+            ])
+            
+        click.echo(table)
+        
+    except Exception as e:
+        click.echo(f"Error accessing database: {e}")
+        sys.exit(1)
 
 @cli.command()
 @click.option('--session', '-s', 'session_id', help='Backup session ID to delete')
