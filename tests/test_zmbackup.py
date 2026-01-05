@@ -4,6 +4,13 @@ from src.zmbackup import cli
 from src.database.models import BackupSession
 from datetime import datetime
 
+@pytest.fixture(autouse=True)
+def mock_get_config(mock_config):
+    """Auto-mock get_config for all CLI tests."""
+    with patch("src.zmbackup.get_config") as mocked:
+        mocked.return_value = mock_config
+        yield mocked
+
 @patch("src.zmbackup.DatabaseClient")
 def test_list_command_empty(mock_client_class, cli_runner):
     """Test list command when no sessions exist."""

@@ -4,6 +4,8 @@ import validators
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 
+from lib.config import DEFAULT_CONFIG_PATH
+
 def validate_email(value):
     if validators.email(value):
         return value
@@ -14,7 +16,7 @@ def validate_address(value):
         return value
     raise click.BadParameter(f"'{value}' is not a valid IP or FQDN.")
 
-def run_init(config_path: str = "/etc/zmbackup/zmbackup.conf"):
+def run_init(config_path: str = str(DEFAULT_CONFIG_PATH)):
     """
     Initialize the zmbackup configuration by prompting the user for values
      and rendering a Jinja2 template.

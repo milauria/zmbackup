@@ -8,6 +8,10 @@ from sqlalchemy.exc import IntegrityError
 from database.models import BackupSession, generate_session_uuid
 from database.session_manager import DatabaseSessionManager
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from lib.config import ZmbackupConfig
+
 
 class DatabaseClient:
     """
@@ -17,15 +21,15 @@ class DatabaseClient:
     automatic connection handling and error management.
     """
     
-    def __init__(self, db_path: str, auto_create_tables: bool = True):
+    def __init__(self, config: "ZmbackupConfig", auto_create_tables: bool = True):
         """
         Initialize the database client.
         
         Args:
-            db_path: Database connection string (e.g., 'sqlite:///sessions.db')
+            config: ZmbackupConfig instance
             auto_create_tables: Whether to auto-create tables if they don't exist
         """
-        self.db_manager = DatabaseSessionManager(db_path)
+        self.db_manager = DatabaseSessionManager(config.database_path)
         
         if auto_create_tables:
             self.db_manager.create_tables()

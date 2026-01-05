@@ -39,19 +39,24 @@ from datetime import datetime
 from prettytable import PrettyTable
 
 from lib.constants import ZMBACKUP_VERSION
+from lib.config import get_config, DEFAULT_CONFIG_PATH
+from exceptions import ConfigurationError
 from operations.init import run_init
 from clients.database_client import DatabaseClient
 
 @click.group(context_settings=dict(help_option_names=['-h', '--help']))
-def cli():
+@click.option('--config-path', default=str(DEFAULT_CONFIG_PATH), help='Path to the configuration file')
+@click.pass_context
+def cli(ctx, config_path):
     """zmbackup CLI for Zimbra backups and restores."""
-    pass
+    ctx.ensure_object(dict)
+    ctx.obj['config_path'] = config_path
 
 @cli.command()
-@click.option('--config-path', default="/etc/zmbackup/zmbackup.conf", help='Path to the configuration file')
-def init(config_path):
+@click.pass_context
+def init(ctx):
     """Initialize the zmbackup configuration."""
-    run_init(config_path)
+    run_init(ctx.obj['config_path'])
 
 @cli.command()
 @click.option('--full', '-f', is_flag=True, help='Full Backup mode')
@@ -63,8 +68,16 @@ def init(config_path):
 @click.option('--signature', '-sig', is_flag=True, help='Backup account signatures')
 @click.option('--domain', '-d', 'domain_opt', help='Comma-separated list of domains')
 @click.option('--account', '-a', 'account_opt', help='Comma-separated list of accounts')
-def backup(full, incremental, mail_flag, distributionlist, alias, ldap, signature, domain_opt, account_opt):
+@click.pass_context
+def backup(ctx, full, incremental, mail_flag, distributionlist, alias, ldap, signature, domain_opt, account_opt):
     """Perform a backup."""
+    config_path = ctx.obj['config_path']
+    try:
+        config = get_config(config_path)
+    except ConfigurationError as e:
+        click.echo(f"Configuration error: {e}")
+        sys.exit(1)
+
     if full and incremental:
         click.echo("Error: Please select only one mode: --full or --incremental.")
         sys.exit(1)
@@ -115,8 +128,16 @@ def backup(full, incremental, mail_flag, distributionlist, alias, ldap, signatur
 @click.option('--session', '-s', 'session_id', help='Backup session ID to restore from')
 @click.option('--origin', '-o', 'mail_origin', help='Original account to restore')
 @click.option('--destination', '-dest', 'mail_destination', help='Destination account for restoration')
-def restore(restoreonaccount, mail_flag, distributionlist, alias, ldap, signature, domain_opt, account_opt, session_id, mail_origin, mail_destination):
+@click.pass_context
+def restore(ctx, restoreonaccount, mail_flag, distributionlist, alias, ldap, signature, domain_opt, account_opt, session_id, mail_origin, mail_destination):
     """Perform a restore."""
+    config_path = ctx.obj['config_path']
+    try:
+        config = get_config(config_path)
+    except ConfigurationError as e:
+        click.echo(f"Configuration error: {e}")
+        sys.exit(1)
+
     if not session_id or not mail_origin:
         click.echo("Error: Restore requires --session (-s) and --origin (-o).")
         sys.exit(1)
@@ -138,12 +159,18 @@ def restore(restoreonaccount, mail_flag, distributionlist, alias, ldap, signatur
     click.echo(f"Restore initiated from session {session_id} for {mail_origin} with options: {', '.join(options) if options else 'none'}")
 
 @cli.command()
-def list():
+@click.pass_context
+def list(ctx):
     """List backup sessions."""
-    db_path = "sqlite:///zmbackup_sessions.db"
+    config_path = ctx.obj['config_path']
+    try:
+        config = get_config(config_path)
+    except ConfigurationError as e:
+        click.echo(f"Configuration error: {e}")
+        sys.exit(1)
     
     try:
-        client = DatabaseClient(db_path)
+        client = DatabaseClient(config)
         sessions = client.list_sessions()
         
         if not sessions:
@@ -173,22 +200,67 @@ def list():
 
 @cli.command()
 @click.option('--session', '-s', 'session_id', help='Backup session ID to delete')
-def delete(session_id):
+@click.pass_context
+def delete(ctx, session_id):
     """Delete a backup session."""
     if not session_id:
         click.echo("Error: Delete requires a --session (-s) option.")
         sys.exit(1)
-    click.echo(f"Session {session_id} deleted successfully")
+    
+    config_path = ctx.obj['config_path']
+    try:
+        config = get_config(config_path)
+    except ConfigurationError as e:
+        click.echo(f"Configuration error: {e}")
+        sys.exit(1)
+        
+    try:
+        client = DatabaseClient(config)
+        if client.delete_session(session_id):
+            click.echo(f"Session {session_id} deleted successfully")
+        else:
+            click.echo(f"Session {session_id} not found")
+    except Exception as e:
+        click.echo(f"Error accessing database: {e}")
+        sys.exit(1)
 
 @cli.command()
-def housekeep():
+@click.pass_context
+def housekeep(ctx):
     """Housekeep old sessions."""
-    click.echo("Housekeeping completed. Old sessions removed based on retention policy.")
+    config_path = ctx.obj['config_path']
+    try:
+        config = get_config(config_path)
+    except ConfigurationError as e:
+        click.echo(f"Configuration error: {e}")
+        sys.exit(1)
+        
+    try:
+        client = DatabaseClient(config)
+        deleted_count = client.delete_sessions_older_than(config.rotate_time)
+        click.echo(f"Housekeeping completed. {deleted_count} old sessions removed.")
+    except Exception as e:
+        click.echo(f"Error during housekeeping: {e}")
+        sys.exit(1)
 
 @cli.command()
-def migrate():
+@click.pass_context
+def migrate(ctx):
     """Database migration."""
-    click.echo("Database migration completed successfully.")
+    config_path = ctx.obj['config_path']
+    try:
+        config = get_config(config_path)
+    except ConfigurationError as e:
+        click.echo(f"Configuration error: {e}")
+        sys.exit(1)
+        
+    try:
+        # DatabaseClient constructor already calls create_tables()
+        DatabaseClient(config)
+        click.echo("Database migration completed successfully.")
+    except Exception as e:
+        click.echo(f"Error during migration: {e}")
+        sys.exit(1)
 
 @cli.command()
 def version():
