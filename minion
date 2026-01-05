@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# Exit on error
+set -e
+
+# Usage message
+usage() {
+    echo "Usage: $0 {init|release|test|format}"
+    echo "  init:    Create virtual environment and install requirements"
+    echo "  release: Run tests and then lints"
+    echo "  test:    Run tests"
+    echo "  format:  Run lints/formatting"
+    exit 1
+}
+
+# Check if a parameter is provided
+if [ $# -ne 1 ]; then
+    usage
+fi
+
+COMMAND=$1
+
+case "$COMMAND" in
+    init)
+        echo "Initializing virtual environment..."
+        if [ -d ".venv" ]; then
+            echo ".venv already exists. Skipping creation."
+        else
+            python3 -m venv .venv
+        fi
+        # Activate and install
+        . .venv/bin/activate
+        pip install -r requirements.txt
+        echo "Initialization complete."
+        ;;
+    test)
+        echo "Running tests..."
+        . .venv/bin/activate
+        PYTHONPATH=./src pytest tests
+        ;;
+    format)
+        echo "Running formatting and linting..."
+        . .venv/bin/activate
+        black src tests && isort src tests && mypy src tests --explicit-package-bases
+        ;;
+    release)
+        echo "Starting release process (test -> lint)..."
+        # Run tests
+        echo "Step 1: Running tests..."
+        . .venv/bin/activate
+        PYTHONPATH=./src pytest tests
+        
+        # Run lints
+        echo "Step 2: Running formatting and linting..."
+        black src tests && isort src tests && mypy src tests --explicit-package-bases
+        echo "Release checks passed."
+        ;;
+    *)
+        usage
+        ;;
+esac
