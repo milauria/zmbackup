@@ -14,7 +14,7 @@ usage() {
 }
 
 # Check if a parameter is provided
-if [ $# -ne 1 ]; then
+if [ $# -lt 1 ]; then
     usage
 fi
 
@@ -36,7 +36,12 @@ case "$COMMAND" in
     test)
         echo "Running tests..."
         . .venv/bin/activate
-        PYTHONPATH=./src pytest tests
+        shift
+        if [ $# -eq 0 ]; then
+            PYTHONPATH=./src pytest tests
+        else
+            PYTHONPATH=./src pytest "$@"
+        fi
         ;;
     format)
         echo "Running formatting and linting..."
