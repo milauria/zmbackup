@@ -6,6 +6,7 @@ sqlalchemy>=2.0.0
 
 # Test dependencies
 black==25.12.0             # Code formatter
+behave==1.3.3              # Cucumber tests
 iniconfig==2.3.0           # Brainless ini config parser (used by pytest)
 isort==7.0.0               # Sorts imports
 mypy==1.19.1               # Static type checker

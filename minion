@@ -5,10 +5,11 @@ set -e
 
 # Usage message
 usage() {
-    echo "Usage: $0 {init|release|test|format}"
+    echo "Usage: $0 {init|release|test|behave|format}"
     echo "  init:    Create virtual environment and install requirements"
     echo "  release: Run tests and then lints"
-    echo "  test:    Run tests"
+    echo "  test:    Run unit tests"
+    echo "  behave:  Run functional tests"
     echo "  format:  Run lints/formatting"
     exit 1
 }
@@ -34,7 +35,7 @@ case "$COMMAND" in
         echo "Initialization complete."
         ;;
     test)
-        echo "Running tests..."
+        echo "Running unit tests..."
         . .venv/bin/activate
         shift
         if [ $# -eq 0 ]; then
@@ -43,20 +44,34 @@ case "$COMMAND" in
             PYTHONPATH=./src pytest "$@"
         fi
         ;;
+    behave)
+        echo "Running functional tests..."
+        . .venv/bin/activate
+        shift
+        if [ $# -eq 0 ]; then
+            PYTHONPATH=./src behave test_func/features/
+        else
+            PYTHONPATH=./src behave "$@"
+        fi
+        ;;
     format)
         echo "Running formatting and linting..."
         . .venv/bin/activate
         black src tests && isort src tests && mypy src tests --explicit-package-bases
         ;;
     release)
-        echo "Starting release process (test -> lint)..."
+        echo "Starting release process (test -> behave -> lint)..."
         # Run tests
-        echo "Step 1: Running tests..."
+        echo "Step 1: Running unit tests..."
         . .venv/bin/activate
         PYTHONPATH=./src pytest tests
         
+        # Run functional tests
+        echo "Step 2: Running functional tests..."
+        PYTHONPATH=./src behave test_func/features/
+
         # Run lints
-        echo "Step 2: Running formatting and linting..."
+        echo "Step 3: Running formatting and linting..."
         black src tests && isort src tests && mypy src tests --explicit-package-bases
         echo "Release checks passed."
         ;;

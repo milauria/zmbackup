@@ -116,7 +116,7 @@ def backup(
     """
     config_path = ctx.obj["config_path"]
     try:
-        config = get_config(config_path)
+        config = get_config(config_path, reload=True)
     except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
         click.echo(f"Configuration error: {e}")
         sys.exit(1)
@@ -203,7 +203,7 @@ def restore(
     """
     config_path = ctx.obj["config_path"]
     try:
-        config = get_config(config_path)
+        config = get_config(config_path, reload=True)
     except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
         click.echo(f"Configuration error: {e}")
         sys.exit(1)
@@ -249,7 +249,7 @@ def list(ctx: click.Context) -> None:
     """
     config_path = ctx.obj["config_path"]
     try:
-        config = get_config(config_path)
+        config = get_config(config_path, reload=True)
     except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
         click.echo(f"Configuration error: {e}")
         sys.exit(1)
@@ -295,7 +295,7 @@ def delete(ctx: click.Context, session_id: Optional[str]) -> None:
 
     config_path = ctx.obj["config_path"]
     try:
-        config = get_config(config_path)
+        config = get_config(config_path, reload=True)
     except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
         click.echo(f"Configuration error: {e}")
         sys.exit(1)
@@ -322,7 +322,7 @@ def housekeep(ctx: click.Context) -> None:
     """
     config_path = ctx.obj["config_path"]
     try:
-        config = get_config(config_path)
+        config = get_config(config_path, reload=True)
     except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
         click.echo(f"Configuration error: {e}")
         sys.exit(1)
@@ -347,7 +347,7 @@ def migrate(ctx: click.Context) -> None:
     """
     config_path = ctx.obj["config_path"]
     try:
-        config = get_config(config_path)
+        config = get_config(config_path, reload=True)
     except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
         click.echo(f"Configuration error: {e}")
         sys.exit(1)
