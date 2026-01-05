@@ -14,31 +14,12 @@ from typing import Any, Dict, Optional, Type, TypeVar, Union
 import attrs
 import validators
 
+from src.enums import EmailNotifyLevel, SessionType
 from src.exceptions import (
     ConfigurationFileNotFoundError,
     ConfigurationParseError,
     ConfigurationValidationError,
 )
-
-# --- Enumeration Types ---
-
-
-class EmailNotifyLevel(Enum):
-    """Email notification levels."""
-
-    ALL = "all"
-    START = "start"
-    FINISH = "finish"
-    ERROR = "error"
-    NONE = "none"
-
-
-class SessionType(Enum):
-    """Session storage backend types."""
-
-    TXT = "TXT"
-    SQLITE3 = "SQLITE3"
-
 
 # --- Constants ---
 

@@ -3,9 +3,10 @@ from pathlib import Path
 
 import pytest
 
+from src.enums import EmailNotifyLevel, SessionType
 from src.exceptions import ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError
 from src.lib import config as config_module
-from src.lib.config import EmailNotifyLevel, SessionType, ZmbackupConfig, _config_instance, get_config
+from src.lib.config import ZmbackupConfig, _config_instance, get_config
 
 
 @pytest.fixture
