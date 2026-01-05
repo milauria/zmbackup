@@ -1,0 +1,12 @@
+{
+  "ose_user": "zimbra",
+  "ose_default_bkp_dir": "/opt/zimbra/backup",
+  "ose_install_address": "192.168.1.10",
+  "ose_install_ldappass": "secret_pass",
+  "zmbkp_mail_alert": "admin@example.com",
+  "zmbkp_mail_sender": "backup@example.com",
+  "max_parallel_process": "4",
+  "rotate_time": "15",
+  "lock_backup": "false",
+  "session_type": "SQLITE"
+}
