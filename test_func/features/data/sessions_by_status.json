@@ -1,0 +1,14 @@
+[
+  {
+    "status": "completed",
+    "count": 3
+  },
+  {
+    "status": "in_progress",
+    "count": 1
+  },
+  {
+    "status": "failed",
+    "count": 2
+  }
+]

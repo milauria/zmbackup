@@ -1,0 +1,20 @@
+[
+  {
+    "backup_type": "full",
+    "status": "completed",
+    "description": "Full backup Jan 5",
+    "size": "2.5 GB"
+  },
+  {
+    "backup_type": "incremental",
+    "status": "completed",
+    "description": "Incremental Jan 6",
+    "size": "500 MB"
+  },
+  {
+    "backup_type": "full",
+    "status": "failed",
+    "description": "Full backup Jan 7",
+    "size": "N/A"
+  }
+]

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 from typing import List
 
 from behave import given, when, then
@@ -55,22 +56,23 @@ def step_empty_database(context: Context) -> None:
     assert len(sessions) == 0, "Database should be empty"
 
 
-@given("the database has {count:d} session with:")
-@given("the database has {count:d} sessions with:")
-def step_create_sessions_from_table(context: Context, count: int) -> None:
+@given('the database has {count:d} session from "{file_path}"')
+@given('the database has {count:d} sessions from "{file_path}"')
+def step_create_sessions_from_json(context: Context, count: int, file_path: str) -> None:
     """
-    Create session(s) from table data.
+    Create session(s) from JSON file data.
 
     :param context: Behave context
     :param count: Expected number of sessions
+    :param file_path: Path to JSON file
     """
-    assert context.table is not None, "Step requires a data table"
+    with open(file_path, "r") as f:
+        data_list = json.load(f)
+
+    assert len(data_list) == count, f"Expected {count} sessions in JSON, found {len(data_list)}"
 
     with context.db_manager.get_session() as db_session:
-        for i, row in enumerate(context.table):
-            # Convert behave table row to dict
-            data = {heading: row[heading] for heading in context.table.headings}
-
+        for i, data in enumerate(data_list):
             # Create session using test data factory
             session = create_test_session_from_dict(data)
             
@@ -83,20 +85,22 @@ def step_create_sessions_from_table(context: Context, count: int) -> None:
         db_session.commit()
 
 
-@given("the database has sessions with backup types:")
-def step_create_sessions_by_type(context: Context) -> None:
+@given('the database has sessions by type from "{file_path}"')
+def step_create_sessions_by_type_json(context: Context, file_path: str) -> None:
     """
-    Create sessions grouped by backup type.
+    Create sessions grouped by backup type from JSON file.
 
     :param context: Behave context
+    :param file_path: Path to JSON file
     """
-    assert context.table is not None, "Step requires a data table"
+    with open(file_path, "r") as f:
+        data_list = json.load(f)
 
     with context.db_manager.get_session() as db_session:
         global_index = 0
-        for row in context.table:
-            backup_type = row["backup_type"]
-            count = int(row["count"])
+        for data in data_list:
+            backup_type = data["backup_type"]
+            count = int(data["count"])
 
             for i in range(count):
                 session = create_test_session(
@@ -109,20 +113,22 @@ def step_create_sessions_by_type(context: Context) -> None:
         db_session.commit()
 
 
-@given("the database has sessions with statuses:")
-def step_create_sessions_by_status(context: Context) -> None:
+@given('the database has sessions by status from "{file_path}"')
+def step_create_sessions_by_status_json(context: Context, file_path: str) -> None:
     """
-    Create sessions grouped by status.
+    Create sessions grouped by status from JSON file.
 
     :param context: Behave context
+    :param file_path: Path to JSON file
     """
-    assert context.table is not None, "Step requires a data table"
+    with open(file_path, "r") as f:
+        data_list = json.load(f)
 
     with context.db_manager.get_session() as db_session:
         global_index = 0
-        for row in context.table:
-            status = row["status"]
-            count = int(row["count"])
+        for data in data_list:
+            status = data["status"]
+            count = int(data["count"])
 
             for i in range(count):
                 session = create_test_session(
@@ -256,22 +262,24 @@ def step_verify_table_columns(context: Context, columns: str) -> None:
     assert_table_has_columns(context.parsed_table, expected_columns)
 
 
-@then("row {row_num:d} should contain:")
-def step_verify_row_data(context: Context, row_num: int) -> None:
+@then('row {row_num:d} should contain data from "{file_path}"')
+def step_verify_row_data_json(context: Context, row_num: int, file_path: str) -> None:
     """
-    Verify specific row contains expected data.
+    Verify specific row contains expected data from JSON file.
 
     :param context: Behave context
     :param row_num: Row index (1-based for Gherkin)
+    :param file_path: Path to JSON file
     """
     assert context.parsed_table is not None, "No table found in output"
-    assert context.table is not None, "Step requires a data table"
+
+    with open(file_path, "r") as f:
+        data_list = json.load(f)
 
     # Convert 1-based row_num to 0-based index
     row_index = row_num - 1
 
-    for row in context.table:
-        expected_values = {heading: row[heading] for heading in context.table.headings}
+    for expected_values in data_list:
         assert_row_contains(context.parsed_table, row_index, expected_values)
 
 

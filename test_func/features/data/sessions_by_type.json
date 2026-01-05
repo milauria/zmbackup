@@ -1,0 +1,14 @@
+[
+  {
+    "backup_type": "full",
+    "count": 2
+  },
+  {
+    "backup_type": "incremental",
+    "count": 3
+  },
+  {
+    "backup_type": "mailbox",
+    "count": 1
+  }
+]

@@ -14,43 +14,27 @@ Feature: List Backup Sessions
     And the exit code should be 0
 
   Scenario: List a single backup session
-    Given the database has 1 session with:
-      | backup_type | status    | description       |
-      | full        | completed | Full backup Jan 5 |
+    Given the database has 1 session from "test_func/features/data/single_session.json"
     When I run the list command
     Then the output should contain a table with 1 row
     And the table should have columns "Session Name", "Start", "Ending", "Size", "Description"
-    And row 1 should contain:
-      | Description       |
-      | Full backup Jan 5 |
+    And row 1 should contain data from "test_func/features/data/single_session_expected.json"
     And the exit code should be 0
 
   Scenario: List multiple backup sessions
-    Given the database has 3 sessions with:
-      | backup_type  | status    | description          | size   |
-      | full         | completed | Full backup Jan 5    | 2.5 GB |
-      | incremental  | completed | Incremental Jan 6    | 500 MB |
-      | full         | failed    | Full backup Jan 7    | N/A    |
+    Given the database has 3 sessions from "test_func/features/data/multiple_sessions.json"
     When I run the list command
     Then the output should contain a table with 3 rows
     And the exit code should be 0
 
   Scenario: List sessions with different backup types
-    Given the database has sessions with backup types:
-      | backup_type  | count |
-      | full         | 2     |
-      | incremental  | 3     |
-      | mailbox      | 1     |
+    Given the database has sessions by type from "test_func/features/data/sessions_by_type.json"
     When I run the list command
     Then the output should contain a table with 6 rows
     And the exit code should be 0
 
   Scenario: List sessions with different statuses
-    Given the database has sessions with statuses:
-      | status      | count |
-      | completed   | 3     |
-      | in_progress | 1     |
-      | failed      | 2     |
+    Given the database has sessions by status from "test_func/features/data/sessions_by_status.json"
     When I run the list command
     Then the output should contain a table with 6 rows
     And the exit code should be 0
