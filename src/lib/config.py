@@ -9,7 +9,7 @@ It uses the attrs library for a clean, immutable configuration object.
 import re
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Optional, Type, TypeVar, Union
 
 import attrs
 import validators
@@ -22,18 +22,23 @@ from src.exceptions import (
 
 # --- Enumeration Types ---
 
+
 class EmailNotifyLevel(Enum):
     """Email notification levels."""
+
     ALL = "all"
     START = "start"
     FINISH = "finish"
     ERROR = "error"
     NONE = "none"
 
+
 class SessionType(Enum):
     """Session storage backend types."""
+
     TXT = "TXT"
     SQLITE3 = "SQLITE3"
+
 
 # --- Constants ---
 
@@ -41,14 +46,16 @@ DEFAULT_CONFIG_PATH = Path("/etc/zmbackup/zmbackup.conf")
 
 T = TypeVar("T", bound=Enum)
 
+
 @attrs.frozen(slots=True)
 class ZmbackupConfig:
     """
     Centralized configuration management for zmbackup.
-    
+
     Loads configuration from zmbackup.conf file and provides
     type-safe access to all configuration parameters.
     """
+
     # Zimbra Configuration
     backup_user: str
     workdir: Path = attrs.field(converter=Path)
@@ -81,13 +88,13 @@ class ZmbackupConfig:
     def load(cls, config_path: Optional[Union[str, Path]] = None) -> "ZmbackupConfig":
         """
         Load configuration from file.
-        
+
         Args:
             config_path: Path to zmbackup.conf file. If None, uses default path.
-            
+
         Returns:
             ZmbackupConfig instance
-            
+
         Raises:
             ConfigurationFileNotFoundError: If configuration file doesn't exist.
             ConfigurationParseError: If file format is invalid.
@@ -99,7 +106,7 @@ class ZmbackupConfig:
             raise ConfigurationFileNotFoundError(str(path))
 
         raw_config = cls._parse_config_file(path)
-        
+
         # Mapping from config file keys to attribute names
         key_map = {
             "BACKUPUSER": "backup_user",
@@ -120,13 +127,13 @@ class ZmbackupConfig:
             "ZMMAILBOX": "zmmailbox",
         }
 
-        config_args = {}
+        config_args: Dict[str, Any] = {}
         for config_key, attr_name in key_map.items():
             if config_key not in raw_config or not raw_config[config_key]:
                 raise ConfigurationValidationError(f"Missing required configuration key: {config_key}")
-            
+
             val = raw_config[config_key]
-            
+
             # Type specific conversions before passing to attrs constructor
             if attr_name == "enable_email_notify":
                 config_args[attr_name] = cls._convert_to_enum(val, EmailNotifyLevel, config_key)
@@ -148,13 +155,13 @@ class ZmbackupConfig:
     def _parse_config_file(path: Path) -> Dict[str, str]:
         """
         Parse configuration file and return raw key-value pairs.
-        
+
         Args:
             path: Path to configuration file
-            
+
         Returns:
             Dictionary of configuration key-value pairs (all strings)
-            
+
         Raises:
             ConfigurationParseError: If file format is invalid
         """
@@ -166,18 +173,18 @@ class ZmbackupConfig:
                     # Skip empty lines and comments
                     if not line or line.startswith("#"):
                         continue
-                    
+
                     if "=" not in line:
                         raise ConfigurationParseError(f"line format at {path}:{line_num}: {line}")
-                    
+
                     key, value = line.split("=", 1)
                     key = key.strip()
                     value = value.strip()
-                    
+
                     # Handle Jinja2 template variables as empty values
                     if value.startswith("{{") and value.endswith("}}"):
                         value = ""
-                        
+
                     config[key] = value
             return config
         except Exception as e:
@@ -204,32 +211,28 @@ class ZmbackupConfig:
             for item in enum_class:
                 if item.name.lower() == value.lower():
                     return item
-            
+
             valid_values = [e.value for e in enum_class]
-            raise ConfigurationValidationError(
-                f"value for {field_name}: {value}. Must be one of {valid_values}"
-            )
+            raise ConfigurationValidationError(f"value for {field_name}: {value}. Must be one of {valid_values}")
 
     def _validate(self) -> None:
         """
         Validate the complete configuration.
-        
+
         Raises:
             ConfigurationValidationError: If validation fails
         """
         self.validate_email(self.email_notify, "EMAIL_NOTIFY")
         self.validate_email(self.email_sender, "EMAIL_SENDER")
         self.validate_ldap_url(self.ldap_server, "LDAPSERVER")
-        
+
         if self.max_parallel_process < 1 or self.max_parallel_process > 20:
             raise ConfigurationValidationError(
                 f"MAX_PARALLEL_PROCESS must be between 1 and 20, got {self.max_parallel_process}"
             )
-        
+
         if self.rotate_time < 1 or self.rotate_time > 3650:
-            raise ConfigurationValidationError(
-                f"ROTATE_TIME must be between 1 and 3650, got {self.rotate_time}"
-            )
+            raise ConfigurationValidationError(f"ROTATE_TIME must be between 1 and 3650, got {self.rotate_time}")
 
     @staticmethod
     def validate_email(email: str, field_name: str) -> None:
@@ -242,7 +245,7 @@ class ZmbackupConfig:
         """Validate LDAP URL format."""
         if not (url.startswith("ldap://") or url.startswith("ldaps://")):
             raise ConfigurationValidationError(f"LDAP URL for {field_name}: {url}")
-        
+
         if not re.match(r"^ldaps?://[a-zA-Z0-9\.-]+(:\d+)?$", url):
             if not validators.url(url):
                 raise ConfigurationValidationError(f"LDAP URL for {field_name}: {url}")
@@ -264,25 +267,26 @@ class ZmbackupConfig:
 
 _config_instance: Optional[ZmbackupConfig] = None
 
+
 def get_config(config_path: Optional[Union[str, Path]] = None, reload: bool = False) -> ZmbackupConfig:
     """
     Get or create the global configuration instance.
-    
+
     Args:
         config_path: Path to configuration file (only used on first call or if reload is True)
         reload: Force reload of configuration
-        
+
     Returns:
         Global ZmbackupConfig instance
-        
+
     Raises:
         ConfigurationFileNotFoundError: If configuration file doesn't exist.
         ConfigurationParseError: If file format is invalid.
         ConfigurationValidationError: If configuration validation fails.
     """
     global _config_instance
-    
+
     if _config_instance is None or reload:
         _config_instance = ZmbackupConfig.load(config_path)
-    
+
     return _config_instance

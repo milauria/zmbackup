@@ -1,10 +1,13 @@
+from pathlib import Path
+from unittest.mock import MagicMock
+
 import pytest
 from click.testing import CliRunner
-from unittest.mock import MagicMock
-from pathlib import Path
+
 from src.clients.database_client import DatabaseClient
 from src.database.session_manager import DatabaseSessionManager
 from src.lib.config import ZmbackupConfig
+
 
 @pytest.fixture
 def mock_config():
@@ -15,10 +18,12 @@ def mock_config():
     config.rotate_time = 30
     return config
 
+
 @pytest.fixture
 def db_url():
     """Fixture for in-memory SQLite database URL."""
     return "sqlite:///:memory:"
+
 
 @pytest.fixture
 def db_client(mock_config):
@@ -26,10 +31,12 @@ def db_client(mock_config):
     client = DatabaseClient(mock_config)
     return client
 
+
 @pytest.fixture
 def session_manager(db_url):
     """Fixture for DatabaseSessionManager."""
     return DatabaseSessionManager(db_url)
+
 
 @pytest.fixture
 def cli_runner():
