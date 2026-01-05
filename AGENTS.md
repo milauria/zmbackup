@@ -8,8 +8,10 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Commands
 - **Lint**: `./minion format`
-- **Test**: `./minion test`
-- **Single Test**: `./minion test tests/path/to/test.py`
+- **Unit Test**: `./minion test`
+- **Single Unit Test**: `./minion test tests/path/to/test.py`
+- **Functional Test**: `./minion behave`
+- **Single Functional Test**: `./minion behave tests/path/to/test.feature`
 
 ## Code Style
 - **MANDATORY** include type hinting
