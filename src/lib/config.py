@@ -1,10 +1,4 @@
-"""
-Centralized configuration management for zmbackup.
-
-This module provides the ZmbackupConfig class which handles loading,
-parsing, and validating configuration settings from the zmbackup.conf file.
-It uses the attrs library for a clean, immutable configuration object.
-"""
+"""Centralized configuration management for zmbackup."""
 
 import re
 from enum import Enum
@@ -70,16 +64,11 @@ class ZmbackupConfig:
         """
         Load configuration from file.
 
-        Args:
-            config_path: Path to zmbackup.conf file. If None, uses default path.
-
-        Returns:
-            ZmbackupConfig instance
-
-        Raises:
-            ConfigurationFileNotFoundError: If configuration file doesn't exist.
-            ConfigurationParseError: If file format is invalid.
-            ConfigurationValidationError: If configuration validation fails.
+        :param config_path: Path to zmbackup.conf file. If None, uses default path.
+        :return: ZmbackupConfig instance
+        :raises ConfigurationFileNotFoundError: If configuration file doesn't exist
+        :raises ConfigurationParseError: If file format is invalid
+        :raises ConfigurationValidationError: If configuration validation fails
         """
         path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
 
@@ -137,14 +126,9 @@ class ZmbackupConfig:
         """
         Parse configuration file and return raw key-value pairs.
 
-        Args:
-            path: Path to configuration file
-
-        Returns:
-            Dictionary of configuration key-value pairs (all strings)
-
-        Raises:
-            ConfigurationParseError: If file format is invalid
+        :param path: Path to configuration file
+        :return: Dictionary of configuration key-value pairs (all strings)
+        :raises ConfigurationParseError: If file format is invalid
         """
         config = {}
         try:
@@ -173,7 +157,14 @@ class ZmbackupConfig:
 
     @staticmethod
     def _convert_to_bool(value: str, field_name: str) -> bool:
-        """Convert string to boolean."""
+        """
+        Convert string to boolean.
+
+        :param value: String representation of boolean
+        :param field_name: Name of the field for error reporting
+        :return: Boolean value
+        :raises ConfigurationParseError: If value cannot be converted
+        """
         val = value.lower()
         if val in ("true", "yes", "1"):
             return True
@@ -183,7 +174,15 @@ class ZmbackupConfig:
 
     @staticmethod
     def _convert_to_enum(value: str, enum_class: Type[T], field_name: str) -> T:
-        """Convert string to enum value."""
+        """
+        Convert string to enum value.
+
+        :param value: String value to convert
+        :param enum_class: Enum class to convert to
+        :param field_name: Name of the field for error reporting
+        :return: Enum instance
+        :raises ConfigurationValidationError: If value is not valid for enum
+        """
         try:
             # Try to match by value (string)
             return enum_class(value)
@@ -200,8 +199,7 @@ class ZmbackupConfig:
         """
         Validate the complete configuration.
 
-        Raises:
-            ConfigurationValidationError: If validation fails
+        :raises ConfigurationValidationError: If validation fails
         """
         self.validate_email(self.email_notify, "EMAIL_NOTIFY")
         self.validate_email(self.email_sender, "EMAIL_SENDER")
@@ -217,13 +215,25 @@ class ZmbackupConfig:
 
     @staticmethod
     def validate_email(email: str, field_name: str) -> None:
-        """Validate email format."""
+        """
+        Validate email format.
+
+        :param email: Email address to validate
+        :param field_name: Name of the field for error reporting
+        :raises ConfigurationValidationError: If email format is invalid
+        """
         if not validators.email(email):
             raise ConfigurationValidationError(f"email format for {field_name}: {email}")
 
     @staticmethod
     def validate_ldap_url(url: str, field_name: str) -> None:
-        """Validate LDAP URL format."""
+        """
+        Validate LDAP URL format.
+
+        :param url: LDAP URL to validate
+        :param field_name: Name of the field for error reporting
+        :raises ConfigurationValidationError: If LDAP URL format is invalid
+        """
         if not (url.startswith("ldap://") or url.startswith("ldaps://")):
             raise ConfigurationValidationError(f"LDAP URL for {field_name}: {url}")
 
@@ -235,12 +245,20 @@ class ZmbackupConfig:
 
     @property
     def database_path(self) -> str:
-        """Derived database path for SQLAlchemy."""
+        """
+        Derived database path for SQLAlchemy.
+
+        :return: Database connection string
+        """
         return f"sqlite:///{self.workdir}/zmbackup_sessions.db"
 
     @property
     def session_file_path(self) -> Path:
-        """Derived session file path."""
+        """
+        Derived session file path.
+
+        :return: Path to session file
+        """
         return self.workdir / "sessions.txt"
 
 
@@ -253,17 +271,12 @@ def get_config(config_path: Optional[Union[str, Path]] = None, reload: bool = Fa
     """
     Get or create the global configuration instance.
 
-    Args:
-        config_path: Path to configuration file (only used on first call or if reload is True)
-        reload: Force reload of configuration
-
-    Returns:
-        Global ZmbackupConfig instance
-
-    Raises:
-        ConfigurationFileNotFoundError: If configuration file doesn't exist.
-        ConfigurationParseError: If file format is invalid.
-        ConfigurationValidationError: If configuration validation fails.
+    :param config_path: Path to configuration file (only used on first call or if reload is True)
+    :param reload: Force reload of configuration
+    :return: Global ZmbackupConfig instance
+    :raises ConfigurationFileNotFoundError: If configuration file doesn't exist
+    :raises ConfigurationParseError: If file format is invalid
+    :raises ConfigurationValidationError: If configuration validation fails
     """
     global _config_instance
 

@@ -1,16 +1,13 @@
 """High-level database client for backup session management."""
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import IntegrityError
 
-from database.models import BackupSession, generate_session_uuid
-from database.session_manager import DatabaseSessionManager
-
-if TYPE_CHECKING:
-    from lib.config import ZmbackupConfig
+from src.database.models import BackupSession, generate_session_uuid
+from src.database.session_manager import DatabaseSessionManager
 
 
 class DatabaseClient:
@@ -21,15 +18,14 @@ class DatabaseClient:
     automatic connection handling and error management.
     """
 
-    def __init__(self, config: "ZmbackupConfig", auto_create_tables: bool = True):
+    def __init__(self, db_manager: DatabaseSessionManager, auto_create_tables: bool = True):
         """
         Initialize the database client.
 
-        Args:
-            config: ZmbackupConfig instance
-            auto_create_tables: Whether to auto-create tables if they don't exist
+        :param db_manager: DatabaseSessionManager instance for session handling
+        :param auto_create_tables: Whether to auto-create tables if they don't exist
         """
-        self.db_manager = DatabaseSessionManager(config.database_path)
+        self.db_manager = db_manager
 
         if auto_create_tables:
             self.db_manager.create_tables()
@@ -47,17 +43,12 @@ class DatabaseClient:
         Automatically generates a UUID-based session name from the backup type
         and timestamp.
 
-        Args:
-            backup_type: Type of backup ('full', 'incremental', 'mailbox')
-            description: Human-readable description
-            start: Backup start time (defaults to now)
-            accounts_count: Number of accounts to backup
-
-        Returns:
-            Created BackupSession instance with generated session_name UUID.
-
-        Raises:
-            ValueError: If session generation fails or UUID collision (extremely rare).
+        :param backup_type: Type of backup ('full', 'incremental', 'mailbox')
+        :param description: Human-readable description
+        :param start: Backup start time (defaults to now)
+        :param accounts_count: Number of accounts to backup
+        :return: Created BackupSession instance with generated session_name UUID
+        :raises ValueError: If session generation fails or UUID collision (extremely rare)
         """
         if start is None:
             start = datetime.now()
@@ -87,11 +78,8 @@ class DatabaseClient:
         """
         Retrieve a backup session by name.
 
-        Args:
-            session_name: Session identifier to retrieve.
-
-        Returns:
-            BackupSession instance or None if not found.
+        :param session_name: Session identifier to retrieve
+        :return: BackupSession instance or None if not found
         """
         with self.db_manager.get_session() as session:
             return session.query(BackupSession).filter_by(session_name=session_name).first()
@@ -107,15 +95,12 @@ class DatabaseClient:
         """
         List backup sessions with optional filtering.
 
-        Args:
-            backup_type: Filter by backup type ('full', 'incremental', 'mailbox')
-            status: Filter by status ('in_progress', 'completed', 'failed')
-            limit: Maximum number of results to return
-            order_by: Field to sort by ('start', 'ending', 'session_name')
-            ascending: Sort order (True for ascending, False for descending)
-
-        Returns:
-            List of BackupSession instances matching criteria.
+        :param backup_type: Filter by backup type ('full', 'incremental', 'mailbox')
+        :param status: Filter by status ('in_progress', 'completed', 'failed')
+        :param limit: Maximum number of results to return
+        :param order_by: Field to sort by ('start', 'ending', 'session_name')
+        :param ascending: Sort order (True for ascending, False for descending)
+        :return: List of BackupSession instances matching criteria
         """
         with self.db_manager.get_session() as session:
             query = session.query(BackupSession)
@@ -149,16 +134,13 @@ class DatabaseClient:
         """
         Update an existing backup session.
 
-        Args:
-            session_name: Session identifier to update.
-            ending: Backup completion timestamp
-            size: Human-readable size string
-            status: New status value
-            accounts_count: Updated account count
-            error_message: Error details if failed
-
-        Returns:
-            Updated BackupSession or None if not found.
+        :param session_name: Session identifier to update
+        :param ending: Backup completion timestamp
+        :param size: Human-readable size string
+        :param status: New status value
+        :param accounts_count: Updated account count
+        :param error_message: Error details if failed
+        :return: Updated BackupSession or None if not found
         """
         with self.db_manager.get_session() as session:
             backup_session = session.query(BackupSession).filter_by(session_name=session_name).first()
@@ -193,13 +175,10 @@ class DatabaseClient:
 
         Convenience method that sets ending time and status to 'completed'.
 
-        Args:
-            session_name: Session identifier to complete.
-            size: Final backup size
-            accounts_count: Final account count
-
-        Returns:
-            Updated BackupSession or None if not found.
+        :param session_name: Session identifier to complete
+        :param size: Final backup size
+        :param accounts_count: Final account count
+        :return: Updated BackupSession or None if not found
         """
         return self.update_session(
             session_name=session_name,
@@ -217,12 +196,9 @@ class DatabaseClient:
         """
         Mark a backup session as failed.
 
-        Args:
-            session_name: Session identifier to mark as failed.
-            error_message: Error description
-
-        Returns:
-            Updated BackupSession or None if not found.
+        :param session_name: Session identifier to mark as failed
+        :param error_message: Error description
+        :return: Updated BackupSession or None if not found
         """
         return self.update_session(
             session_name=session_name,
@@ -235,11 +211,8 @@ class DatabaseClient:
         """
         Delete a backup session record.
 
-        Args:
-            session_name: Session identifier to delete.
-
-        Returns:
-            True if deleted, False if not found.
+        :param session_name: Session identifier to delete
+        :return: True if deleted, False if not found
         """
         with self.db_manager.get_session() as session:
             backup_session = session.query(BackupSession).filter_by(session_name=session_name).first()
@@ -255,11 +228,8 @@ class DatabaseClient:
         """
         Delete all sessions of a specific backup type.
 
-        Args:
-            backup_type: Type of backups to delete.
-
-        Returns:
-            Number of sessions deleted.
+        :param backup_type: Type of backups to delete
+        :return: Number of sessions deleted
         """
         with self.db_manager.get_session() as session:
             result = session.query(BackupSession).filter_by(backup_type=backup_type).delete()
@@ -272,11 +242,8 @@ class DatabaseClient:
 
         Used for housekeeping operations based on retention policy.
 
-        Args:
-            days: Delete sessions older than this many days.
-
-        Returns:
-            Number of sessions deleted.
+        :param days: Delete sessions older than this many days
+        :return: Number of sessions deleted
         """
         cutoff_date = datetime.now() - timedelta(days=days)
 
@@ -285,12 +252,11 @@ class DatabaseClient:
             session.commit()
             return int(result)
 
-    def get_statistics(self) -> dict:
+    def get_statistics(self) -> Dict[str, Any]:
         """
         Get aggregate statistics about backup sessions.
 
-        Returns:
-            Dictionary with statistics (total, by type, by status).
+        :return: Dictionary with statistics (total, by type, by status)
         """
         with self.db_manager.get_session() as session:
             total = session.query(BackupSession).count()

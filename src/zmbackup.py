@@ -32,6 +32,7 @@
 # 06/02/2021 - Version 1.2.6  - By The Zimbra Community
 # 03/01/2026 - Version 2.0.0  - By The Zimbra Community
 ################################################################################
+
 import sys
 from datetime import datetime
 from typing import List, Optional
@@ -39,30 +40,40 @@ from typing import List, Optional
 import click
 from prettytable import PrettyTable
 
-from clients.database_client import DatabaseClient
-from exceptions import (
+from src.clients.database_client import DatabaseClient
+from src.database.session_manager import DatabaseSessionManager
+from src.exceptions import (
     ConfigurationFileNotFoundError,
     ConfigurationParseError,
     ConfigurationValidationError,
 )
-from lib.config import DEFAULT_CONFIG_PATH, get_config
-from lib.constants import ZMBACKUP_VERSION
-from operations.init import run_init
+from src.lib.config import DEFAULT_CONFIG_PATH, get_config
+from src.lib.constants import ZMBACKUP_VERSION
+from src.operations.init import run_init
 
 
 @click.group(context_settings=dict(help_option_names=["-h", "--help"]))
 @click.option("--config-path", default=str(DEFAULT_CONFIG_PATH), help="Path to the configuration file")
 @click.pass_context
-def cli(ctx, config_path):
-    """zmbackup CLI for Zimbra backups and restores."""
+def cli(ctx: click.Context, config_path: str) -> None:
+    """
+    zmbackup CLI for Zimbra backups and restores.
+
+    :param ctx: Click context
+    :param config_path: Path to the configuration file
+    """
     ctx.ensure_object(dict)
     ctx.obj["config_path"] = config_path
 
 
 @cli.command()
 @click.pass_context
-def init(ctx):
-    """Initialize the zmbackup configuration."""
+def init(ctx: click.Context) -> None:
+    """
+    Initialize the zmbackup configuration.
+
+    :param ctx: Click context
+    """
     run_init(ctx.obj["config_path"])
 
 
@@ -77,8 +88,32 @@ def init(ctx):
 @click.option("--domain", "-d", "domain_opt", help="Comma-separated list of domains")
 @click.option("--account", "-a", "account_opt", help="Comma-separated list of accounts")
 @click.pass_context
-def backup(ctx, full, incremental, mail_flag, distributionlist, alias, ldap, signature, domain_opt, account_opt):
-    """Perform a backup."""
+def backup(
+    ctx: click.Context,
+    full: bool,
+    incremental: bool,
+    mail_flag: bool,
+    distributionlist: bool,
+    alias: bool,
+    ldap: bool,
+    signature: bool,
+    domain_opt: Optional[str],
+    account_opt: Optional[str],
+) -> None:
+    """
+    Perform a backup.
+
+    :param ctx: Click context
+    :param full: Full Backup mode
+    :param incremental: Incremental Backup mode
+    :param mail_flag: Only backup mailbox content
+    :param distributionlist: Backup distribution lists
+    :param alias: Backup aliases
+    :param ldap: Only backup LDAP entries
+    :param signature: Backup account signatures
+    :param domain_opt: Comma-separated list of domains
+    :param account_opt: Comma-separated list of accounts
+    """
     config_path = ctx.obj["config_path"]
     try:
         config = get_config(config_path)
@@ -137,20 +172,35 @@ def backup(ctx, full, incremental, mail_flag, distributionlist, alias, ldap, sig
 @click.option("--destination", "-dest", "mail_destination", help="Destination account for restoration")
 @click.pass_context
 def restore(
-    ctx,
-    restoreonaccount,
-    mail_flag,
-    distributionlist,
-    alias,
-    ldap,
-    signature,
-    domain_opt,
-    account_opt,
-    session_id,
-    mail_origin,
-    mail_destination,
-):
-    """Perform a restore."""
+    ctx: click.Context,
+    restoreonaccount: bool,
+    mail_flag: bool,
+    distributionlist: bool,
+    alias: bool,
+    ldap: bool,
+    signature: bool,
+    domain_opt: Optional[str],
+    account_opt: Optional[str],
+    session_id: Optional[str],
+    mail_origin: Optional[str],
+    mail_destination: Optional[str],
+) -> None:
+    """
+    Perform a restore.
+
+    :param ctx: Click context
+    :param restoreonaccount: Restore from one account to another
+    :param mail_flag: Only restore mailbox content
+    :param distributionlist: Restore distribution lists
+    :param alias: Restore aliases
+    :param ldap: Only restore LDAP entries
+    :param signature: Restore account signatures
+    :param domain_opt: Comma-separated list of domains
+    :param account_opt: Comma-separated list of accounts
+    :param session_id: Backup session ID to restore from
+    :param mail_origin: Original account to restore
+    :param mail_destination: Destination account for restoration
+    """
     config_path = ctx.obj["config_path"]
     try:
         config = get_config(config_path)
@@ -191,8 +241,12 @@ def restore(
 
 @cli.command()
 @click.pass_context
-def list(ctx):
-    """List backup sessions."""
+def list(ctx: click.Context) -> None:
+    """
+    List backup sessions.
+
+    :param ctx: Click context
+    """
     config_path = ctx.obj["config_path"]
     try:
         config = get_config(config_path)
@@ -201,7 +255,8 @@ def list(ctx):
         sys.exit(1)
 
     try:
-        client = DatabaseClient(config)
+        db_manager = DatabaseSessionManager(config.database_path)
+        client = DatabaseClient(db_manager)
         sessions = client.list_sessions()
 
         if not sessions:
@@ -227,8 +282,13 @@ def list(ctx):
 @cli.command()
 @click.option("--session", "-s", "session_id", help="Backup session ID to delete")
 @click.pass_context
-def delete(ctx, session_id):
-    """Delete a backup session."""
+def delete(ctx: click.Context, session_id: Optional[str]) -> None:
+    """
+    Delete a backup session.
+
+    :param ctx: Click context
+    :param session_id: Backup session ID to delete
+    """
     if not session_id:
         click.echo("Error: Delete requires a --session (-s) option.")
         sys.exit(1)
@@ -241,7 +301,8 @@ def delete(ctx, session_id):
         sys.exit(1)
 
     try:
-        client = DatabaseClient(config)
+        db_manager = DatabaseSessionManager(config.database_path)
+        client = DatabaseClient(db_manager)
         if client.delete_session(session_id):
             click.echo(f"Session {session_id} deleted successfully")
         else:
@@ -253,8 +314,12 @@ def delete(ctx, session_id):
 
 @cli.command()
 @click.pass_context
-def housekeep(ctx):
-    """Housekeep old sessions."""
+def housekeep(ctx: click.Context) -> None:
+    """
+    Housekeep old sessions.
+
+    :param ctx: Click context
+    """
     config_path = ctx.obj["config_path"]
     try:
         config = get_config(config_path)
@@ -263,7 +328,8 @@ def housekeep(ctx):
         sys.exit(1)
 
     try:
-        client = DatabaseClient(config)
+        db_manager = DatabaseSessionManager(config.database_path)
+        client = DatabaseClient(db_manager)
         deleted_count = client.delete_sessions_older_than(config.rotate_time)
         click.echo(f"Housekeeping completed. {deleted_count} old sessions removed.")
     except Exception as e:
@@ -273,8 +339,12 @@ def housekeep(ctx):
 
 @cli.command()
 @click.pass_context
-def migrate(ctx):
-    """Database migration."""
+def migrate(ctx: click.Context) -> None:
+    """
+    Database migration.
+
+    :param ctx: Click context
+    """
     config_path = ctx.obj["config_path"]
     try:
         config = get_config(config_path)
@@ -284,7 +354,8 @@ def migrate(ctx):
 
     try:
         # DatabaseClient constructor already calls create_tables()
-        DatabaseClient(config)
+        db_manager = DatabaseSessionManager(config.database_path)
+        DatabaseClient(db_manager)
         click.echo("Database migration completed successfully.")
     except Exception as e:
         click.echo(f"Error during migration: {e}")
@@ -292,7 +363,7 @@ def migrate(ctx):
 
 
 @cli.command()
-def version():
+def version() -> None:
     """Show version info."""
     click.echo(f"zmbackup version: {ZMBACKUP_VERSION}")
 

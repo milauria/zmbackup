@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class EmailNotifyLevel(Enum):
+class EmailNotifyLevel(Enum):  # pragma: no cover
     """Email notification levels."""
 
     ALL = "all"

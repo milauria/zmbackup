@@ -16,8 +16,13 @@ def mock_get_config(mock_config):
 
 
 @patch("src.zmbackup.DatabaseClient")
-def test_list_command_empty(mock_client_class, cli_runner):
-    """Test list command when no sessions exist."""
+def test_list_command_empty(mock_client_class: MagicMock, cli_runner) -> None:
+    """
+    Test list command when no sessions exist.
+
+    :param mock_client_class: Mocked DatabaseClient class
+    :param cli_runner: Click CliRunner fixture
+    """
     mock_client = mock_client_class.return_value
     mock_client.list_sessions.return_value = []
 
@@ -28,8 +33,13 @@ def test_list_command_empty(mock_client_class, cli_runner):
 
 
 @patch("src.zmbackup.DatabaseClient")
-def test_list_command_with_data(mock_client_class, cli_runner):
-    """Test list command with sessions."""
+def test_list_command_with_data(mock_client_class: MagicMock, cli_runner) -> None:
+    """
+    Test list command with sessions.
+
+    :param mock_client_class: Mocked DatabaseClient class
+    :param cli_runner: Click CliRunner fixture
+    """
     mock_client = mock_client_class.return_value
 
     # Create mock session objects
@@ -60,8 +70,13 @@ def test_list_command_with_data(mock_client_class, cli_runner):
 
 
 @patch("src.zmbackup.DatabaseClient")
-def test_list_command_error(mock_client_class, cli_runner):
-    """Test list command error handling."""
+def test_list_command_error(mock_client_class: MagicMock, cli_runner) -> None:
+    """
+    Test list command error handling.
+
+    :param mock_client_class: Mocked DatabaseClient class
+    :param cli_runner: Click CliRunner fixture
+    """
     mock_client = mock_client_class.return_value
     mock_client.list_sessions.side_effect = Exception("DB Error")
 

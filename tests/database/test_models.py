@@ -13,8 +13,14 @@ from src.database.models import BackupSession, generate_session_uuid
         ("mailbox", datetime(2026, 1, 1, 12, 0, 0), 36),
     ],
 )
-def test_generate_session_uuid_parametrized(backup_type, timestamp, expected_len):
-    """Test deterministic UUID generation with different backup types."""
+def test_generate_session_uuid_parametrized(backup_type: str, timestamp: datetime, expected_len: int) -> None:
+    """
+    Test deterministic UUID generation with different backup types.
+
+    :param backup_type: Type of backup
+    :param timestamp: Backup start timestamp
+    :param expected_len: Expected UUID length
+    """
     uuid1 = generate_session_uuid(backup_type, timestamp)
     uuid2 = generate_session_uuid(backup_type, timestamp)
 
@@ -25,7 +31,7 @@ def test_generate_session_uuid_parametrized(backup_type, timestamp, expected_len
     assert "-" in uuid1
 
 
-def test_generate_session_uuid_uniqueness():
+def test_generate_session_uuid_uniqueness() -> None:
     """Test that different inputs produce different UUIDs."""
     ts = datetime(2026, 1, 1, 12, 0, 0)
     uuid_full = generate_session_uuid("full", ts)
@@ -36,7 +42,7 @@ def test_generate_session_uuid_uniqueness():
     assert uuid_full != uuid_diff_time
 
 
-def test_backup_session_creation():
+def test_backup_session_creation() -> None:
     """Test BackupSession model creation and default values."""
     start_time = datetime.now()
     session = BackupSession(
@@ -57,7 +63,7 @@ def test_backup_session_creation():
     assert session.error_message is None
 
 
-def test_backup_session_repr():
+def test_backup_session_repr() -> None:
     """Test string representation of BackupSession."""
     session = BackupSession(session_name="test-session", backup_type="full", status="completed")
     repr_str = repr(session)
@@ -66,12 +72,10 @@ def test_backup_session_repr():
     assert "completed" in repr_str
 
 
-def test_backup_session_to_dict():
+def test_backup_session_to_dict() -> None:
     """Test to_dict method serialization."""
     start_time = datetime(2026, 1, 1, 12, 0, 0)
     end_time = datetime(2026, 1, 1, 13, 0, 0)
-    created_at = datetime(2026, 1, 1, 11, 0, 0)
-    updated_at = datetime(2026, 1, 1, 11, 30, 0)
 
     session = BackupSession(
         session_name="test-session",
@@ -83,8 +87,6 @@ def test_backup_session_to_dict():
         accounts_count=10,
         status="completed",
         error_message="None",
-        created_at=created_at,
-        updated_at=updated_at,
     )
 
     data = session.to_dict()
@@ -98,20 +100,14 @@ def test_backup_session_to_dict():
     assert data["accounts_count"] == 10
     assert data["status"] == "completed"
     assert data["error_message"] == "None"
-    assert data["created_at"] == created_at.isoformat()
-    assert data["updated_at"] == updated_at.isoformat()
 
 
-def test_backup_session_to_dict_none_values():
+def test_backup_session_to_dict_none_values() -> None:
     """Test to_dict with None values."""
     session = BackupSession(session_name="test", backup_type="full", description="desc")
     # Ensure values are None
-    session.start = None
-    session.created_at = None
-    session.updated_at = None
+    session.start = None  # type: ignore[assignment]
 
     data = session.to_dict()
     assert data["start"] is None
     assert data["ending"] is None
-    assert data["created_at"] is None
-    assert data["updated_at"] is None

@@ -2,13 +2,13 @@
 
 from contextlib import contextmanager
 from functools import cached_property
-from typing import Generator, Optional
+from typing import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from database.models import Base
+from src.database.models import Base
 
 
 class DatabaseSessionManager:
@@ -23,8 +23,7 @@ class DatabaseSessionManager:
         """
         Initialize the database session manager.
 
-        Args:
-            db_path: Database connection string (e.g., 'sqlite:///path/to/db.sqlite')
+        :param db_path: Database connection string (e.g., 'sqlite:///path/to/db.sqlite')
         """
         self.db_path = db_path
 
@@ -33,8 +32,7 @@ class DatabaseSessionManager:
         """
         Get or create the SQLAlchemy engine.
 
-        Returns:
-            Configured SQLAlchemy engine.
+        :return: Configured SQLAlchemy engine
         """
         # Create engine with SQLite-specific optimizations
         if self.db_path.startswith("sqlite"):
@@ -50,8 +48,7 @@ class DatabaseSessionManager:
         """
         Get or create the session factory.
 
-        Returns:
-            Configured sessionmaker bound to engine.
+        :return: Configured sessionmaker bound to engine
         """
         return sessionmaker(
             bind=self.engine,
@@ -73,8 +70,8 @@ class DatabaseSessionManager:
 
         Provides automatic session cleanup and transaction management.
 
-        Yields:
-            SQLAlchemy session instance.
+        :yield: SQLAlchemy session instance
+        :raises Exception: If database operation fails, session is rolled back
         """
         session = self.session_factory()
         try:
@@ -86,11 +83,21 @@ class DatabaseSessionManager:
             session.close()
 
     def __enter__(self) -> "DatabaseSessionManager":
-        """Support for context manager."""
+        """
+        Support for context manager.
+
+        :return: self
+        """
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Dispose the engine when exiting the context."""
+        """
+        Dispose the engine when exiting the context.
+
+        :param exc_type: Exception type
+        :param exc_val: Exception value
+        :param exc_tb: Exception traceback
+        """
         # Note: cached_property stores the result in __dict__
         if "engine" in self.__dict__:
             self.engine.dispose()

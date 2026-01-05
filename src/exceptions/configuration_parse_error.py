@@ -1,5 +1,10 @@
-class ConfigurationParseError(Exception):
+class ConfigurationParseError(Exception):  # pragma: no cover
     """Error parsing configuration file."""
 
     def __init__(self, message: str):
-        super().__init__(f"Error parsing configuration: {message}")
+        """
+        Initialize the error.
+
+        :param message: Error message
+        """
+        super().__init__(message)

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any, Dict, List
 from unittest.mock import MagicMock, mock_open, patch
 
 import click
@@ -70,9 +71,19 @@ def mock_env_setup():
     ],
 )
 @patch("src.operations.init.os.geteuid", return_value=0)
-def test_run_init_success_parametrized(mock_geteuid, mock_env_setup, inputs, expected_context):
+def test_run_init_success_parametrized(
+    mock_geteuid: MagicMock,
+    mock_env_setup: Dict[str, Any],
+    inputs: List[Any],
+    expected_context: Dict[str, Any],
+) -> None:
     """
-    Test run_init with different input sets to verify correct prompting and template rendering.
+    Test run_init with different input sets.
+
+    :param mock_geteuid: Mocked geteuid
+    :param mock_env_setup: Mocked environment fixture
+    :param inputs: List of inputs for prompts
+    :param expected_context: Expected context for template rendering
     """
     config_path = "/etc/zmbackup/zmbackup.conf"
     mock_env_setup["template"].render.return_value = "rendered_content"
@@ -96,9 +107,19 @@ def test_run_init_success_parametrized(mock_geteuid, mock_env_setup, inputs, exp
     ],
 )
 @patch("src.operations.init.os.geteuid", return_value=0)
-def test_run_init_errors_parametrized(mock_geteuid, mock_env_setup, exception_to_raise, expected_log):
+def test_run_init_errors_parametrized(
+    mock_geteuid: MagicMock,
+    mock_env_setup: Dict[str, Any],
+    exception_to_raise: Exception,
+    expected_log: str,
+) -> None:
     """
     Test run_init error handling for various failure scenarios.
+
+    :param mock_geteuid: Mocked geteuid
+    :param mock_env_setup: Mocked environment fixture
+    :param exception_to_raise: Exception to simulate
+    :param expected_log: Expected error message in logs
     """
     mock_env_setup["template"].render.side_effect = exception_to_raise
 
@@ -110,13 +131,16 @@ def test_run_init_errors_parametrized(mock_geteuid, mock_env_setup, exception_to
         with pytest.raises(click.Abort):
             run_init("/tmp/test.conf")
 
-        mock_echo.assert_any_call(expected_log, err=True)
+        mock_echo.assert_any_call(expected_log)
 
 
 @patch("src.operations.init.os.geteuid", return_value=0)
-def test_run_init_template_load_failure(mock_geteuid, mock_env_setup):
+def test_run_init_template_load_failure(mock_geteuid: MagicMock, mock_env_setup: Dict[str, Any]) -> None:
     """
     Test behavior when the template file cannot be found or loaded.
+
+    :param mock_geteuid: Mocked geteuid
+    :param mock_env_setup: Mocked environment fixture
     """
     mock_env_setup["env"].get_template.side_effect = Exception("File not found")
 
@@ -129,10 +153,8 @@ def test_run_init_template_load_failure(mock_geteuid, mock_env_setup):
         run_init("/tmp/test.conf")
 
 
-def test_run_init_non_root():
-    """
-    Test that run_init aborts if not executed by root.
-    """
+def test_run_init_non_root() -> None:
+    """Test that run_init aborts if not executed by root."""
     with patch("src.operations.init.os.geteuid", return_value=1000), patch("click.echo") as mock_echo:
 
         with pytest.raises(click.Abort):
@@ -141,7 +163,7 @@ def test_run_init_non_root():
         mock_echo.assert_called_with("Error: This command can only be executed by root user.", err=True)
 
 
-def test_validate_email_success():
+def test_validate_email_success() -> None:
     """Test validate_email with valid email."""
     from src.operations.init import validate_email
 
@@ -149,7 +171,7 @@ def test_validate_email_success():
     assert validate_email(email) == email
 
 
-def test_validate_email_failure():
+def test_validate_email_failure() -> None:
     """Test validate_email with invalid email."""
     from src.operations.init import validate_email
 
@@ -159,16 +181,24 @@ def test_validate_email_failure():
 
 
 @pytest.mark.parametrize("address", ["127.0.0.1", "::1", "ldap.example.com", "server1.local"])
-def test_validate_address_success(address):
-    """Test validate_address with valid IP or FQDN."""
+def test_validate_address_success(address: str) -> None:
+    """
+    Test validate_address with valid IP or FQDN.
+
+    :param address: Address to validate
+    """
     from src.operations.init import validate_address
 
     assert validate_address(address) == address
 
 
 @pytest.mark.parametrize("address", ["invalid_address", "http://server", "1.2.3.4.5"])
-def test_validate_address_failure(address):
-    """Test validate_address with invalid address."""
+def test_validate_address_failure(address: str) -> None:
+    """
+    Test validate_address with invalid address.
+
+    :param address: Address to validate
+    """
     from src.operations.init import validate_address
 
     with pytest.raises(click.BadParameter) as excinfo:

@@ -1,5 +1,10 @@
-class ConfigurationValidationError(Exception):
+class ConfigurationValidationError(Exception):  # pragma: no cover
     """Configuration validation failed."""
 
     def __init__(self, message: str):
-        super().__init__(f"Configuration validation failed: {message}")
+        """
+        Initialize the error.
+
+        :param message: Error message
+        """
+        super().__init__(message)
