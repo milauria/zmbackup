@@ -1,5 +1,4 @@
-from .configuration_error import ConfigurationError
-
-class ConfigurationParseError(ConfigurationError):
+class ConfigurationParseError(Exception):
     """Error parsing configuration file."""
-    pass
+    def __init__(self, message: str):
+        super().__init__(f"Error parsing configuration: {message}")

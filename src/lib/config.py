@@ -15,7 +15,6 @@ import attrs
 import validators
 
 from src.exceptions import (
-    ConfigurationError,
     ConfigurationFileNotFoundError,
     ConfigurationParseError,
     ConfigurationValidationError,
@@ -97,7 +96,7 @@ class ZmbackupConfig:
         path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
 
         if not path.exists():
-            raise ConfigurationFileNotFoundError(f"Configuration file not found: {path}")
+            raise ConfigurationFileNotFoundError(str(path))
 
         raw_config = cls._parse_config_file(path)
         
@@ -142,10 +141,8 @@ class ZmbackupConfig:
             instance = cls(**config_args)
             instance._validate()
             return instance
-        except (ValueError, TypeError, ConfigurationError) as e:
-            if isinstance(e, ConfigurationError):
-                raise
-            raise ConfigurationParseError(f"Error initializing configuration: {str(e)}")
+        except (ValueError, TypeError) as e:
+            raise ConfigurationParseError(f"Initializing configuration: {str(e)}")
 
     @staticmethod
     def _parse_config_file(path: Path) -> Dict[str, str]:
@@ -171,7 +168,7 @@ class ZmbackupConfig:
                         continue
                     
                     if "=" not in line:
-                        raise ConfigurationParseError(f"Invalid line format at {path}:{line_num}: {line}")
+                        raise ConfigurationParseError(f"line format at {path}:{line_num}: {line}")
                     
                     key, value = line.split("=", 1)
                     key = key.strip()
@@ -184,9 +181,7 @@ class ZmbackupConfig:
                     config[key] = value
             return config
         except Exception as e:
-            if isinstance(e, ConfigurationParseError):
-                raise
-            raise ConfigurationParseError(f"Error reading configuration file {path}: {str(e)}")
+            raise ConfigurationParseError(f"reading configuration file {path}: {str(e)}")
 
     @staticmethod
     def _convert_to_bool(value: str, field_name: str) -> bool:
@@ -196,7 +191,7 @@ class ZmbackupConfig:
             return True
         if val in ("false", "no", "0"):
             return False
-        raise ConfigurationParseError(f"Invalid boolean value for {field_name}: {value}")
+        raise ConfigurationParseError(f"boolean value for {field_name}: {value}")
 
     @staticmethod
     def _convert_to_enum(value: str, enum_class: Type[T], field_name: str) -> T:
@@ -212,7 +207,7 @@ class ZmbackupConfig:
             
             valid_values = [e.value for e in enum_class]
             raise ConfigurationValidationError(
-                f"Invalid value for {field_name}: {value}. Must be one of {valid_values}"
+                f"value for {field_name}: {value}. Must be one of {valid_values}"
             )
 
     def _validate(self) -> None:
@@ -240,17 +235,17 @@ class ZmbackupConfig:
     def validate_email(email: str, field_name: str) -> None:
         """Validate email format."""
         if not validators.email(email):
-            raise ConfigurationValidationError(f"Invalid email format for {field_name}: {email}")
+            raise ConfigurationValidationError(f"email format for {field_name}: {email}")
 
     @staticmethod
     def validate_ldap_url(url: str, field_name: str) -> None:
         """Validate LDAP URL format."""
         if not (url.startswith("ldap://") or url.startswith("ldaps://")):
-            raise ConfigurationValidationError(f"Invalid LDAP URL for {field_name}: {url}")
+            raise ConfigurationValidationError(f"LDAP URL for {field_name}: {url}")
         
         if not re.match(r"^ldaps?://[a-zA-Z0-9\.-]+(:\d+)?$", url):
             if not validators.url(url):
-                raise ConfigurationValidationError(f"Invalid LDAP URL for {field_name}: {url}")
+                raise ConfigurationValidationError(f"LDAP URL for {field_name}: {url}")
 
     # --- Derived Properties ---
 
@@ -281,7 +276,9 @@ def get_config(config_path: Optional[Union[str, Path]] = None, reload: bool = Fa
         Global ZmbackupConfig instance
         
     Raises:
-        ConfigurationError: If configuration is invalid
+        ConfigurationFileNotFoundError: If configuration file doesn't exist.
+        ConfigurationParseError: If file format is invalid.
+        ConfigurationValidationError: If configuration validation fails.
     """
     global _config_instance
     

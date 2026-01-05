@@ -40,7 +40,11 @@ from prettytable import PrettyTable
 
 from lib.constants import ZMBACKUP_VERSION
 from lib.config import get_config, DEFAULT_CONFIG_PATH
-from exceptions import ConfigurationError
+from exceptions import (
+    ConfigurationFileNotFoundError,
+    ConfigurationParseError,
+    ConfigurationValidationError,
+)
 from operations.init import run_init
 from clients.database_client import DatabaseClient
 
@@ -74,7 +78,7 @@ def backup(ctx, full, incremental, mail_flag, distributionlist, alias, ldap, sig
     config_path = ctx.obj['config_path']
     try:
         config = get_config(config_path)
-    except ConfigurationError as e:
+    except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
         click.echo(f"Configuration error: {e}")
         sys.exit(1)
 
@@ -134,7 +138,7 @@ def restore(ctx, restoreonaccount, mail_flag, distributionlist, alias, ldap, sig
     config_path = ctx.obj['config_path']
     try:
         config = get_config(config_path)
-    except ConfigurationError as e:
+    except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
         click.echo(f"Configuration error: {e}")
         sys.exit(1)
 
@@ -165,7 +169,7 @@ def list(ctx):
     config_path = ctx.obj['config_path']
     try:
         config = get_config(config_path)
-    except ConfigurationError as e:
+    except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
         click.echo(f"Configuration error: {e}")
         sys.exit(1)
     
@@ -210,7 +214,7 @@ def delete(ctx, session_id):
     config_path = ctx.obj['config_path']
     try:
         config = get_config(config_path)
-    except ConfigurationError as e:
+    except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
         click.echo(f"Configuration error: {e}")
         sys.exit(1)
         
@@ -231,7 +235,7 @@ def housekeep(ctx):
     config_path = ctx.obj['config_path']
     try:
         config = get_config(config_path)
-    except ConfigurationError as e:
+    except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
         click.echo(f"Configuration error: {e}")
         sys.exit(1)
         
@@ -250,7 +254,7 @@ def migrate(ctx):
     config_path = ctx.obj['config_path']
     try:
         config = get_config(config_path)
-    except ConfigurationError as e:
+    except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
         click.echo(f"Configuration error: {e}")
         sys.exit(1)
         

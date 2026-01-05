@@ -1,5 +1,5 @@
-from .configuration_error import ConfigurationError
-
-class ConfigurationFileNotFoundError(ConfigurationError):
+class ConfigurationFileNotFoundError(Exception):
     """Configuration file not found."""
-    pass
+    def __init__(self, path: str):
+        self.path = path
+        super().__init__(f"Configuration file not found: {path}")

@@ -9,7 +9,6 @@ from src.lib.config import (
     _config_instance
 )
 from src.exceptions import (
-    ConfigurationError,
     ConfigurationFileNotFoundError,
     ConfigurationParseError,
     ConfigurationValidationError
@@ -55,14 +54,6 @@ def create_config_file(tmp_path):
                 f.write(f"{key}={value}\n")
         return config_file
     return _create
-
-# --- Exception Classes Tests ---
-
-def test_exception_inheritance():
-    """Test that custom exceptions inherit from ConfigurationError."""
-    assert issubclass(ConfigurationFileNotFoundError, ConfigurationError)
-    assert issubclass(ConfigurationParseError, ConfigurationError)
-    assert issubclass(ConfigurationValidationError, ConfigurationError)
 
 # --- Enum Classes Tests ---
 
@@ -134,7 +125,7 @@ def test_load_config_malformed_line(tmp_path):
     """Test ConfigurationParseError for malformed lines (missing =)."""
     config_file = tmp_path / "malformed.conf"
     config_file.write_text("INVALID_LINE_WITHOUT_EQUALS")
-    with pytest.raises(ConfigurationParseError, match="Invalid line format"):
+    with pytest.raises(ConfigurationParseError, match="line format at"):
         ZmbackupConfig.load(config_file)
 
 def test_load_config_missing_required_field(create_config_file, valid_config_dict):
@@ -168,7 +159,7 @@ def test_convert_to_bool_valid(value, expected):
 
 def test_convert_to_bool_invalid():
     """Test invalid boolean conversion."""
-    with pytest.raises(ConfigurationParseError, match="Invalid boolean value"):
+    with pytest.raises(ConfigurationParseError, match="boolean value for"):
         ZmbackupConfig._convert_to_bool("maybe", "test_field")
 
 @pytest.mark.parametrize("value,enum_class,expected", [
@@ -186,7 +177,7 @@ def test_convert_to_enum_valid(value, enum_class, expected):
 
 def test_convert_to_enum_invalid():
     """Test invalid enum conversion."""
-    with pytest.raises(ConfigurationValidationError, match="Invalid value for test_field"):
+    with pytest.raises(ConfigurationValidationError, match="value for test_field"):
         ZmbackupConfig._convert_to_enum("invalid_val", EmailNotifyLevel, "test_field")
 
 # --- Validation Tests ---
@@ -198,7 +189,7 @@ def test_validate_email_valid():
 
 def test_validate_email_invalid():
     """Test invalid email validation."""
-    with pytest.raises(ConfigurationValidationError, match="Invalid email format"):
+    with pytest.raises(ConfigurationValidationError, match="email format for"):
         ZmbackupConfig.validate_email("not-an-email", "TEST_EMAIL")
 
 @pytest.mark.parametrize("url", [
@@ -219,7 +210,7 @@ def test_validate_ldap_url_valid(url):
 ])
 def test_validate_ldap_url_invalid(url):
     """Test invalid LDAP URL validation."""
-    with pytest.raises(ConfigurationValidationError, match="Invalid LDAP URL"):
+    with pytest.raises(ConfigurationValidationError, match="LDAP URL for"):
         ZmbackupConfig.validate_ldap_url(url, "LDAPSERVER")
 
 def test_validate_parallel_process_range(create_config_file, valid_config_dict):
