@@ -4,10 +4,10 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from src.clients.database_client import DatabaseClient
-from src.database.session_manager import DatabaseSessionManager
-from src.enums import EmailNotifyLevel, SessionType
-from src.lib.config import ZmbackupConfig
+from clients.database_client import DatabaseClient
+from database.session_manager import DatabaseSessionManager
+from enums import EmailNotifyLevel, SessionType
+from lib.config import ZmbackupConfig
 
 # Test files directory
 TEST_FILES_DIR = Path(__file__).parent / "test-files" / "config"

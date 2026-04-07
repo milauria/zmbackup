@@ -5,16 +5,16 @@ from unittest.mock import MagicMock, mock_open, patch
 import click
 import pytest
 
-from src.operations.init import run_init
+from operations.init import run_init
 
 
 @pytest.fixture
 def mock_env_setup():
     """Fixture to mock Jinja2 environment and file operations."""
     with (
-        patch("src.operations.init.Environment") as mock_env_class,
-        patch("src.operations.init.open", mock_open()) as mocked_file,
-        patch("src.operations.init.Path.mkdir") as mock_mkdir,
+        patch("operations.init.Environment") as mock_env_class,
+        patch("operations.init.open", mock_open()) as mocked_file,
+        patch("operations.init.Path.mkdir") as mock_mkdir,
     ):
 
         mock_env = mock_env_class.return_value
@@ -70,7 +70,7 @@ def mock_env_setup():
         ),
     ],
 )
-@patch("src.operations.init.os.geteuid", return_value=0)
+@patch("operations.init.os.geteuid", return_value=0)
 def test_run_init_success_parametrized(
     mock_geteuid: MagicMock,
     mock_env_setup: Dict[str, Any],
@@ -106,7 +106,7 @@ def test_run_init_success_parametrized(
         (IOError("Disk full"), "Error initializing configuration: Disk full"),
     ],
 )
-@patch("src.operations.init.os.geteuid", return_value=0)
+@patch("operations.init.os.geteuid", return_value=0)
 def test_run_init_errors_parametrized(
     mock_geteuid: MagicMock,
     mock_env_setup: Dict[str, Any],
@@ -134,7 +134,7 @@ def test_run_init_errors_parametrized(
         mock_echo.assert_any_call(expected_log)
 
 
-@patch("src.operations.init.os.geteuid", return_value=0)
+@patch("operations.init.os.geteuid", return_value=0)
 def test_run_init_template_load_failure(mock_geteuid: MagicMock, mock_env_setup: Dict[str, Any]) -> None:
     """
     Test behavior when the template file cannot be found or loaded.
@@ -155,7 +155,7 @@ def test_run_init_template_load_failure(mock_geteuid: MagicMock, mock_env_setup:
 
 def test_run_init_non_root() -> None:
     """Test that run_init aborts if not executed by root."""
-    with patch("src.operations.init.os.geteuid", return_value=1000), patch("click.echo") as mock_echo:
+    with patch("operations.init.os.geteuid", return_value=1000), patch("click.echo") as mock_echo:
 
         with pytest.raises(click.Abort):
             run_init()
@@ -165,7 +165,7 @@ def test_run_init_non_root() -> None:
 
 def test_validate_email_success() -> None:
     """Test validate_email with valid email."""
-    from src.operations.init import validate_email
+    from operations.init import validate_email
 
     email = "test@example.com"
     assert validate_email(email) == email
@@ -173,7 +173,7 @@ def test_validate_email_success() -> None:
 
 def test_validate_email_failure() -> None:
     """Test validate_email with invalid email."""
-    from src.operations.init import validate_email
+    from operations.init import validate_email
 
     with pytest.raises(click.BadParameter) as excinfo:
         validate_email("invalid-email")
@@ -187,7 +187,7 @@ def test_validate_address_success(address: str) -> None:
 
     :param address: Address to validate
     """
-    from src.operations.init import validate_address
+    from operations.init import validate_address
 
     assert validate_address(address) == address
 
@@ -199,7 +199,7 @@ def test_validate_address_failure(address: str) -> None:
 
     :param address: Address to validate
     """
-    from src.operations.init import validate_address
+    from operations.init import validate_address
 
     with pytest.raises(click.BadParameter) as excinfo:
         validate_address(address)

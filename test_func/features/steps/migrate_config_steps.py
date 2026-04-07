@@ -11,7 +11,7 @@ from behave import given, when, then
 from behave.runner import Context
 from click.testing import CliRunner
 
-from src.operations.migrate_config import migrate_config
+from operations.migrate_config import migrate_config
 
 
 @given("I have a temporary directory for testing")
@@ -218,7 +218,7 @@ def step_run_migrate_config(context: Context) -> None:
     
     :param context: Behave context
     """
-    from src.operations.migrate_config import ConfigMigrator
+    from operations.migrate_config import ConfigMigrator
     
     # Capture stdout and stderr
     stdout_capture = StringIO()
@@ -260,7 +260,7 @@ def step_run_migrate_config_force(context: Context) -> None:
     
     :param context: Behave context
     """
-    from src.operations.migrate_config import ConfigMigrator
+    from operations.migrate_config import ConfigMigrator
     
     stdout_capture = StringIO()
     stderr_capture = StringIO()
@@ -300,7 +300,7 @@ def step_run_migrate_config_dry_run(context: Context) -> None:
     
     :param context: Behave context
     """
-    from src.operations.migrate_config import ConfigMigrator
+    from operations.migrate_config import ConfigMigrator
     
     stdout_capture = StringIO()
     stderr_capture = StringIO()
@@ -340,7 +340,7 @@ def step_run_migrate_config_custom_output(context: Context) -> None:
     
     :param context: Behave context
     """
-    from src.operations.migrate_config import ConfigMigrator
+    from operations.migrate_config import ConfigMigrator
     
     context.custom_output_path = context.temp_path / "custom" / "config.json"
     
@@ -382,7 +382,7 @@ def step_run_migrate_config_etc(context: Context) -> None:
     
     :param context: Behave context
     """
-    from src.operations.migrate_config import ConfigMigrator
+    from operations.migrate_config import ConfigMigrator
     
     stdout_capture = StringIO()
     stderr_capture = StringIO()
@@ -422,7 +422,7 @@ def step_run_migrate_config_user_dir(context: Context) -> None:
     
     :param context: Behave context
     """
-    from src.operations.migrate_config import ConfigMigrator
+    from operations.migrate_config import ConfigMigrator
     
     stdout_capture = StringIO()
     stderr_capture = StringIO()
@@ -463,7 +463,7 @@ def step_run_migrate_config_custom_suffix(context: Context, suffix: str) -> None
     :param context: Behave context
     :param suffix: Backup file suffix
     """
-    from src.operations.migrate_config import ConfigMigrator
+    from operations.migrate_config import ConfigMigrator
     
     context.backup_suffix = suffix
     

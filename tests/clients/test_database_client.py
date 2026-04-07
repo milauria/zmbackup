@@ -3,7 +3,7 @@ from typing import Optional
 
 import pytest
 
-from src.clients.database_client import DatabaseClient
+from clients.database_client import DatabaseClient
 
 
 def test_create_session(db_client: DatabaseClient) -> None:

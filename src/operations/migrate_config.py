@@ -9,11 +9,11 @@ from typing import Any, Callable, Dict, Optional, Union
 
 import click
 
-from src.exceptions import (
+from exceptions import (
     ConfigurationParseError,
     ConfigurationValidationError,
 )
-from src.lib.config import ZmbackupConfig
+from lib.config import ZmbackupConfig
 
 
 class ConfigMigrator:

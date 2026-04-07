@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
-from src.database.models import BackupSession, generate_session_uuid
+from database.models import BackupSession, generate_session_uuid
 
 
 def create_test_session(

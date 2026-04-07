@@ -40,16 +40,16 @@ from typing import List, Optional
 import click
 from prettytable import PrettyTable
 
-from src.clients.database_client import DatabaseClient
-from src.database.session_manager import DatabaseSessionManager
-from src.exceptions import (
+from clients.database_client import DatabaseClient
+from database.session_manager import DatabaseSessionManager
+from exceptions import (
     ConfigurationFileNotFoundError,
     ConfigurationParseError,
     ConfigurationValidationError,
 )
-from src.lib.config import DEFAULT_CONFIG_PATH, get_config
-from src.lib.constants import ZMBACKUP_VERSION
-from src.operations.init import run_init
+from lib.config import DEFAULT_CONFIG_PATH, get_config
+from lib.constants import ZMBACKUP_VERSION
+from operations.init import run_init
 
 
 @click.group(context_settings=dict(help_option_names=["-h", "--help"]))

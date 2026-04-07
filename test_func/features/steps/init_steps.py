@@ -5,7 +5,7 @@ from unittest.mock import patch
 from behave import given, when, then
 from behave.runner import Context
 
-from src.zmbackup import cli
+from zmbackup import cli
 
 
 @given("I am running as root")

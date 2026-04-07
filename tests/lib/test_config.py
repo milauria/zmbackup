@@ -5,14 +5,14 @@ from typing import Any, Dict, Generator, Optional
 
 import pytest
 
-from src.enums import EmailNotifyLevel, SessionType
-from src.exceptions import (
+from enums import EmailNotifyLevel, SessionType
+from exceptions import (
     ConfigurationFileNotFoundError,
     ConfigurationParseError,
     ConfigurationValidationError,
 )
-from src.lib import config as config_module
-from src.lib.config import ZmbackupConfig, get_config
+from lib import config as config_module
+from lib.config import ZmbackupConfig, get_config
 
 
 @pytest.fixture

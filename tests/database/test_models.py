@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from src.database.models import BackupSession, generate_session_uuid
+from database.models import BackupSession, generate_session_uuid
 
 
 @pytest.mark.parametrize(

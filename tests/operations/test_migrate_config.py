@@ -7,8 +7,8 @@ from typing import Any, Dict
 import click
 import pytest
 
-from src.exceptions import ConfigurationParseError, ConfigurationValidationError
-from src.operations.migrate_config import ConfigMigrator, migrate_config
+from exceptions import ConfigurationParseError, ConfigurationValidationError
+from operations.migrate_config import ConfigMigrator, migrate_config
 
 
 @pytest.fixture

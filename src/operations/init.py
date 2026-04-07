@@ -7,7 +7,7 @@ import click
 import validators
 from jinja2 import Environment, FileSystemLoader
 
-from src.lib.config import DEFAULT_CONFIG_PATH
+from lib.config import DEFAULT_CONFIG_PATH
 
 
 def validate_email(value: str) -> str:

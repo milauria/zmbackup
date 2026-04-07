@@ -35,4 +35,4 @@ dependencies = [
 ]
 
 [project.scripts]
-zmbackup = "src.cli:cli"
+zmbackup = "cli:cli"

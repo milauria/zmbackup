@@ -5,7 +5,7 @@ from typing import List
 from behave import given, when, then
 from behave.runner import Context
 
-from src.database.models import generate_session_uuid
+from database.models import generate_session_uuid
 from test_func.fixtures.backup_session_factory import (
     create_test_session,
     create_test_session_from_dict,
@@ -19,7 +19,7 @@ from test_func.helpers.output_parser import (
     assert_table_has_columns,
     assert_row_contains,
 )
-from src.zmbackup import cli
+from zmbackup import cli
 
 
 @given("a clean zmbackup environment")

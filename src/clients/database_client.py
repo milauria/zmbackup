@@ -6,8 +6,8 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import IntegrityError
 
-from src.database.models import BackupSession, generate_session_uuid
-from src.database.session_manager import DatabaseSessionManager
+from database.models import BackupSession, generate_session_uuid
+from database.session_manager import DatabaseSessionManager
 
 
 class DatabaseClient:

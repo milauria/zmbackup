@@ -5,8 +5,8 @@ from typing import Any
 from behave.runner import Context
 from click.testing import CliRunner
 
-from src.clients.database_client import DatabaseClient
-from src.database.session_manager import DatabaseSessionManager
+from clients.database_client import DatabaseClient
+from database.session_manager import DatabaseSessionManager
 
 
 def before_all(context: Context) -> None:

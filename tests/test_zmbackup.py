@@ -3,19 +3,19 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.database.models import BackupSession
-from src.zmbackup import cli
+from database.models import BackupSession
+from zmbackup import cli
 
 
 @pytest.fixture(autouse=True)
 def mock_get_config(mock_config):
     """Auto-mock get_config for all CLI tests."""
-    with patch("src.zmbackup.get_config") as mocked:
+    with patch("zmbackup.get_config") as mocked:
         mocked.return_value = mock_config
         yield mocked
 
 
-@patch("src.zmbackup.DatabaseClient")
+@patch("zmbackup.DatabaseClient")
 def test_list_command_empty(mock_client_class: MagicMock, cli_runner) -> None:
     """
     Test list command when no sessions exist.
@@ -32,7 +32,7 @@ def test_list_command_empty(mock_client_class: MagicMock, cli_runner) -> None:
     assert "No backup sessions found." in result.output
 
 
-@patch("src.zmbackup.DatabaseClient")
+@patch("zmbackup.DatabaseClient")
 def test_list_command_with_data(mock_client_class: MagicMock, cli_runner) -> None:
     """
     Test list command with sessions.
@@ -69,7 +69,7 @@ def test_list_command_with_data(mock_client_class: MagicMock, cli_runner) -> Non
     assert "N/A" in result.output  # for missing ending/size
 
 
-@patch("src.zmbackup.DatabaseClient")
+@patch("zmbackup.DatabaseClient")
 def test_list_command_error(mock_client_class: MagicMock, cli_runner) -> None:
     """
     Test list command error handling.

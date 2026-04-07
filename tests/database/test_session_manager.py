@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from src.database.session_manager import DatabaseSessionManager
+from database.session_manager import DatabaseSessionManager
 
 
 def test_session_manager_init(db_url):
@@ -23,7 +23,7 @@ def test_session_manager_engine_sqlite(db_url):
 
 def test_session_manager_engine_other():
     """Test engine creation with other database type."""
-    with patch("src.database.session_manager.create_engine") as mock_create:
+    with patch("database.session_manager.create_engine") as mock_create:
         manager = DatabaseSessionManager("postgresql://user:pass@localhost/db")
         _ = manager.engine
         mock_create.assert_called_with("postgresql://user:pass@localhost/db", echo=False)

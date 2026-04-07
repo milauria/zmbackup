@@ -10,8 +10,8 @@ from typing import Any, Dict, Optional, Type, TypeVar, Union
 import attrs
 import validators
 
-from src.enums import EmailNotifyLevel, SessionType
-from src.exceptions import (
+from enums import EmailNotifyLevel, SessionType
+from exceptions import (
     ConfigurationFileNotFoundError,
     ConfigurationParseError,
     ConfigurationValidationError,
