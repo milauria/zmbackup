@@ -1,6 +1,8 @@
 """Centralized configuration management for zmbackup."""
 
+import json
 import re
+import warnings
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Optional, Type, TypeVar, Union
@@ -27,99 +29,329 @@ class ZmbackupConfig:
     """
     Centralized configuration management for zmbackup.
 
-    Loads configuration from zmbackup.conf file and provides
-    type-safe access to all configuration parameters.
+    Configuration is loaded from JSON file and accessed via properties.
+    The underlying configuration dictionary is stored in _config attribute
+    and remains immutable through the attrs.frozen decorator.
+
+    .. note::
+       Starting from zmbackup v2.1, JSON format is the standard configuration
+       format. The old KEY=VALUE format is deprecated and support will be
+       removed in v3.0.
     """
 
-    # Zimbra Configuration
-    backup_user: str
-    workdir: Path = attrs.field(converter=Path)
-    ldap_server: str
-    ldap_admin: str
-    ldap_password: str
+    # Core attributes - store the raw configuration
+    _config: Dict[str, Any] = attrs.field(alias="_config")
+    _config_path: Path = attrs.field(converter=Path, alias="_config_path")
 
-    # Logging Configuration
-    log_file: Path = attrs.field(converter=Path)
+    # --- Properties ---
 
-    # Email Configuration
-    enable_email_notify: EmailNotifyLevel
-    email_notify: str
-    email_sender: str
+    @property
+    def backup_user(self) -> str:
+        """
+        Zimbra backup user account.
 
-    # Backup Configuration
-    max_parallel_process: int = attrs.field(converter=int)
-    rotate_time: int = attrs.field(converter=int)
-    lock_backup: bool
-    backup_inactive_accounts: bool
-    ssl_enable: bool
+        :return: Zimbra backup user
+        """
+        return str(self._config["zimbra"]["backup_user"])
 
-    # Session Configuration
-    session_type: SessionType
+    @property
+    def workdir(self) -> Path:
+        """
+        Working directory for backups.
 
-    # Binary Paths
-    zmmailbox: Path = attrs.field(converter=Path)
+        :return: Path to working directory
+        """
+        return Path(self._config["zimbra"]["workdir"])
+
+    @property
+    def ldap_server(self) -> str:
+        """
+        Zimbra LDAP server URL.
+
+        :return: LDAP server URL
+        """
+        return str(self._config["zimbra"]["ldap_server"])
+
+    @property
+    def ldap_admin(self) -> str:
+        """
+        Zimbra LDAP admin DN.
+
+        :return: LDAP admin DN
+        """
+        return str(self._config["zimbra"]["ldap_admin"])
+
+    @property
+    def ldap_password(self) -> str:
+        """
+        Zimbra LDAP admin password.
+
+        :return: LDAP admin password
+        """
+        return str(self._config["zimbra"]["ldap_password"])
+
+    @property
+    def log_file(self) -> Path:
+        """
+        Path to log file.
+
+        :return: Path to log file
+        """
+        return Path(self._config["logging"]["log_file"])
+
+    @property
+    def enable_email_notify(self) -> EmailNotifyLevel:
+        """
+        Email notification level.
+
+        :return: Email notification level enum
+        """
+        val = self._config["email"]["enable_notify"]
+        if isinstance(val, EmailNotifyLevel):
+            return val
+        return self._convert_to_enum(str(val), EmailNotifyLevel, "email.enable_notify")
+
+    @property
+    def email_notify(self) -> str:
+        """
+        Email address for notifications.
+
+        :return: Email address for notifications
+        """
+        return str(self._config["email"]["notify_address"])
+
+    @property
+    def email_sender(self) -> str:
+        """
+        Email sender address.
+
+        :return: Email sender address
+        """
+        return str(self._config["email"]["sender_address"])
+
+    @property
+    def max_parallel_process(self) -> int:
+        """
+        Maximum parallel backup processes.
+
+        :return: Maximum parallel processes
+        """
+        return int(self._config["backup"]["max_parallel_process"])
+
+    @property
+    def rotate_time(self) -> int:
+        """
+        Retention time in days.
+
+        :return: Retention time in days
+        """
+        return int(self._config["backup"]["rotate_time"])
+
+    @property
+    def lock_backup(self) -> bool:
+        """
+        Lock backup to one per day.
+
+        :return: True if backup lock is enabled
+        """
+        val = self._config["backup"]["lock_backup"]
+        if isinstance(val, bool):
+            return val
+        return self._convert_to_bool(str(val), "backup.lock_backup")
+
+    @property
+    def backup_inactive_accounts(self) -> bool:
+        """
+        Include inactive accounts in backup.
+
+        :return: True if inactive accounts should be backed up
+        """
+        val = self._config["backup"]["backup_inactive_accounts"]
+        if isinstance(val, bool):
+            return val
+        return self._convert_to_bool(str(val), "backup.backup_inactive_accounts")
+
+    @property
+    def ssl_enable(self) -> bool:
+        """
+        Enable SSL communication with Zimbra.
+
+        :return: True if SSL is enabled
+        """
+        val = self._config["backup"]["ssl_enable"]
+        if isinstance(val, bool):
+            return val
+        return self._convert_to_bool(str(val), "backup.ssl_enable")
+
+    @property
+    def session_type(self) -> SessionType:
+        """
+        Session storage backend.
+
+        :return: Session storage backend enum
+        """
+        val = self._config["session"]["type"]
+        if isinstance(val, SessionType):
+            return val
+        return self._convert_to_enum(str(val), SessionType, "session.type")
+
+    @property
+    def zmmailbox(self) -> Path:
+        """
+        Path to zmmailbox binary.
+
+        :return: Path to zmmailbox binary
+        """
+        return Path(self._config["binaries"]["zmmailbox"])
 
     @classmethod
     def load(cls, config_path: Optional[Union[str, Path]] = None) -> "ZmbackupConfig":
         """
-        Load configuration from file.
+        Load configuration from JSON or legacy KEY=VALUE file.
 
-        :param config_path: Path to zmbackup.conf file. If None, uses default path.
+        Automatically detects file format and parses accordingly.
+        Legacy format support will be removed in v3.0.
+
+        :param config_path: Path to configuration file. Uses default if None.
         :return: ZmbackupConfig instance
-        :raises ConfigurationFileNotFoundError: If configuration file doesn't exist
+        :raises ConfigurationFileNotFoundError: If file doesn't exist
         :raises ConfigurationParseError: If file format is invalid
-        :raises ConfigurationValidationError: If configuration validation fails
+        :raises ConfigurationValidationError: If validation fails
+
+        .. warning::
+           Legacy KEY=VALUE format is deprecated. Use 'zmbackup migrate-config' to convert.
         """
         path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
 
         if not path.exists():
             raise ConfigurationFileNotFoundError(str(path))
 
-        raw_config = cls._parse_config_file(path)
-
-        # Mapping from config file keys to attribute names
-        key_map = {
-            "BACKUPUSER": "backup_user",
-            "WORKDIR": "workdir",
-            "LDAPSERVER": "ldap_server",
-            "LDAPADMIN": "ldap_admin",
-            "LDAPPASS": "ldap_password",
-            "LOGFILE": "log_file",
-            "ENABLE_EMAIL_NOTIFY": "enable_email_notify",
-            "EMAIL_NOTIFY": "email_notify",
-            "EMAIL_SENDER": "email_sender",
-            "MAX_PARALLEL_PROCESS": "max_parallel_process",
-            "ROTATE_TIME": "rotate_time",
-            "LOCK_BACKUP": "lock_backup",
-            "SESSION_TYPE": "session_type",
-            "BACKUP_INACTIVE_ACCOUNTS": "backup_inactive_accounts",
-            "SSL_ENABLE": "ssl_enable",
-            "ZMMAILBOX": "zmmailbox",
-        }
-
-        config_args: Dict[str, Any] = {}
-        for config_key, attr_name in key_map.items():
-            if config_key not in raw_config or not raw_config[config_key]:
-                raise ConfigurationValidationError(f"Missing required configuration key: {config_key}")
-
-            val = raw_config[config_key]
-
-            # Type specific conversions before passing to attrs constructor
-            if attr_name == "enable_email_notify":
-                config_args[attr_name] = cls._convert_to_enum(val, EmailNotifyLevel, config_key)
-            elif attr_name == "session_type":
-                config_args[attr_name] = cls._convert_to_enum(val, SessionType, config_key)
-            elif attr_name in ("lock_backup", "backup_inactive_accounts", "ssl_enable"):
-                config_args[attr_name] = cls._convert_to_bool(val, config_key)
-            else:
-                config_args[attr_name] = val
+        # Detect format and parse
+        if cls._is_json_format(path):
+            raw_config = cls._parse_json_file(path)
+        else:
+            # Legacy format - issue deprecation warning
+            warnings.warn(
+                "KEY=VALUE format is deprecated. Use 'zmbackup migrate-config' to convert to JSON.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            raw_config = cls._parse_legacy_file(path)
 
         try:
-            instance = cls(**config_args)
+            # Create instance with validated config
+            instance = cls(_config=raw_config, _config_path=path)
             instance._validate()
             return instance
         except (ValueError, TypeError) as e:
             raise ConfigurationParseError(f"Initializing configuration: {str(e)}")
+
+    @staticmethod
+    def _is_json_format(path: Path) -> bool:
+        """
+        Detect if file is JSON format.
+
+        :param path: Path to configuration file
+        :return: True if JSON format, False otherwise
+        """
+        try:
+            with open(path, "r") as f:
+                first_char = f.read(1).strip()
+                return first_char == "{"
+        except Exception:
+            return False
+
+    @staticmethod
+    def _parse_json_file(path: Path) -> Dict[str, Any]:
+        """
+        Parse JSON configuration file.
+
+        :param path: Path to JSON file
+        :return: Parsed configuration dictionary
+        :raises ConfigurationParseError: If JSON is invalid
+        """
+        try:
+            with open(path, "r") as f:
+                config: Dict[str, Any] = json.load(f)
+
+            # Validate schema version
+            if config.get("version") != "1.0":
+                raise ConfigurationParseError(f"Unsupported configuration version: {config.get('version')}")
+
+            return config
+        except json.JSONDecodeError as e:
+            raise ConfigurationParseError(f"Invalid JSON format in {path}: {str(e)}")
+        except Exception as e:
+            raise ConfigurationParseError(f"reading configuration file {path}: {str(e)}")
+
+    @classmethod
+    def _parse_legacy_file(cls, path: Path) -> Dict[str, Any]:
+        """
+        Parse legacy KEY=VALUE configuration file and convert to internal format.
+
+        :param path: Path to legacy config file
+        :return: Configuration dictionary in JSON schema format
+        :raises ConfigurationParseError: If file format is invalid
+        :raises ConfigurationValidationError: If required fields are missing
+        """
+        # Parse using existing logic
+        raw_config = cls._parse_config_file(path)
+
+        # Replicate original required field validation
+        required_keys = [
+            "BACKUPUSER",
+            "WORKDIR",
+            "LDAPSERVER",
+            "LDAPADMIN",
+            "LDAPPASS",
+            "LOGFILE",
+            "ENABLE_EMAIL_NOTIFY",
+            "EMAIL_NOTIFY",
+            "EMAIL_SENDER",
+            "MAX_PARALLEL_PROCESS",
+            "ROTATE_TIME",
+            "LOCK_BACKUP",
+            "SESSION_TYPE",
+            "BACKUP_INACTIVE_ACCOUNTS",
+            "SSL_ENABLE",
+            "ZMMAILBOX",
+        ]
+        for key in required_keys:
+            if key not in raw_config or not raw_config[key]:
+                raise ConfigurationValidationError(f"Missing required configuration key: {key}")
+
+        # Convert to new schema structure
+        return {
+            "version": "1.0",
+            "zimbra": {
+                "backup_user": raw_config["BACKUPUSER"],
+                "workdir": raw_config["WORKDIR"],
+                "ldap_server": raw_config["LDAPSERVER"],
+                "ldap_admin": raw_config["LDAPADMIN"],
+                "ldap_password": raw_config["LDAPPASS"],
+            },
+            "logging": {
+                "log_file": raw_config["LOGFILE"],
+            },
+            "email": {
+                "enable_notify": raw_config["ENABLE_EMAIL_NOTIFY"],
+                "notify_address": raw_config["EMAIL_NOTIFY"],
+                "sender_address": raw_config["EMAIL_SENDER"],
+            },
+            "backup": {
+                "max_parallel_process": int(raw_config["MAX_PARALLEL_PROCESS"]),
+                "rotate_time": int(raw_config["ROTATE_TIME"]),
+                "lock_backup": raw_config["LOCK_BACKUP"],
+                "backup_inactive_accounts": raw_config["BACKUP_INACTIVE_ACCOUNTS"],
+                "ssl_enable": raw_config["SSL_ENABLE"],
+            },
+            "session": {
+                "type": raw_config["SESSION_TYPE"],
+            },
+            "binaries": {
+                "zmmailbox": raw_config["ZMMAILBOX"],
+            },
+        }
 
     @staticmethod
     def _parse_config_file(path: Path) -> Dict[str, str]:
@@ -199,8 +431,9 @@ class ZmbackupConfig:
         """
         Validate the complete configuration.
 
-        :raises ConfigurationValidationError: If validation fails
+        :raises ConfigurationValidationError: If any validation fails
         """
+        # Trigger property evaluation to validate types and trigger conversions
         self.validate_email(self.email_notify, "EMAIL_NOTIFY")
         self.validate_email(self.email_sender, "EMAIL_SENDER")
         self.validate_ldap_url(self.ldap_server, "LDAPSERVER")
@@ -212,6 +445,10 @@ class ZmbackupConfig:
 
         if self.rotate_time < 1 or self.rotate_time > 3650:
             raise ConfigurationValidationError(f"ROTATE_TIME must be between 1 and 3650, got {self.rotate_time}")
+
+        # Trigger enum validation
+        _ = self.enable_email_notify
+        _ = self.session_type
 
     @staticmethod
     def validate_email(email: str, field_name: str) -> None:

@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -8,32 +9,44 @@ from src.database.session_manager import DatabaseSessionManager
 from src.enums import EmailNotifyLevel, SessionType
 from src.lib.config import ZmbackupConfig
 
+# Test files directory
+TEST_FILES_DIR = Path(__file__).parent / "test-files" / "config"
+
 
 @pytest.fixture
-def mock_config() -> ZmbackupConfig:
+def config_test_file():
+    """
+    Factory fixture to get path to test configuration files.
+
+    :return: Function that returns path to test config file
+    """
+
+    def _get_path(filename: str) -> Path:
+        """
+        Get path to test configuration file.
+
+        :param filename: Name of the test file
+        :return: Path to test file
+        :raises FileNotFoundError: If test file doesn't exist
+        """
+        file_path = TEST_FILES_DIR / filename
+        if not file_path.exists():
+            raise FileNotFoundError(f"Test file not found: {file_path}")
+        return file_path
+
+    return _get_path
+
+
+@pytest.fixture
+def mock_config(config_test_file) -> ZmbackupConfig:
     """
     Fixture for a real ZmbackupConfig instance for testing.
 
+    :param config_test_file: Factory fixture to get test config file paths
     :return: ZmbackupConfig instance
     """
-    return ZmbackupConfig(
-        backup_user="zimbra",
-        workdir=Path("/tmp/zmbackup"),
-        ldap_server="ldap://localhost:389",
-        ldap_admin="uid=zimbra,cn=admins,cn=zimbra",
-        ldap_password="password",
-        log_file=Path("/tmp/zmbackup.log"),
-        enable_email_notify=EmailNotifyLevel.ALL,
-        email_notify="admin@example.com",
-        email_sender="zmbackup@example.com",
-        max_parallel_process=3,
-        rotate_time=30,
-        lock_backup=True,
-        backup_inactive_accounts=True,
-        ssl_enable=True,
-        session_type=SessionType.TXT,
-        zmmailbox=Path("/opt/zimbra/bin/zmmailbox"),
-    )
+    config_path = config_test_file("valid_config.json")
+    return ZmbackupConfig.load(config_path)
 
 
 @pytest.fixture

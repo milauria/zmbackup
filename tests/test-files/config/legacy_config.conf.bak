@@ -1,0 +1,17 @@
+# Legacy KEY=VALUE format configuration
+BACKUPUSER=zimbra
+WORKDIR=/opt/zimbra/backup
+LDAPSERVER=ldap://localhost:389
+LDAPADMIN=uid=zimbra,cn=admins,cn=zimbra
+LDAPPASS=secret
+LOGFILE=/opt/zimbra/log/zmbackup.log
+ENABLE_EMAIL_NOTIFY=all
+EMAIL_NOTIFY=admin@example.com
+EMAIL_SENDER=zmbackup@example.com
+MAX_PARALLEL_PROCESS=5
+ROTATE_TIME=30
+LOCK_BACKUP=true
+SESSION_TYPE=SQLITE3
+BACKUP_INACTIVE_ACCOUNTS=false
+SSL_ENABLE=yes
+ZMMAILBOX=/opt/zimbra/bin/zmmailbox

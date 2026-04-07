@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "zimbra": {
+    "backup_user": "zimbra",
+    "workdir": "/opt/zimbra/backup"
+    MISSING_COMMA_HERE
+  }
+}

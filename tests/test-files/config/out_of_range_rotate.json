@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "zimbra": {
+    "backup_user": "zimbra",
+    "workdir": "/opt/zimbra/backup",
+    "ldap_server": "ldap://localhost:389",
+    "ldap_admin": "uid=zimbra,cn=admins,cn=zimbra",
+    "ldap_password": "secret"
+  },
+  "logging": {
+    "log_file": "/opt/zimbra/log/zmbackup.log"
+  },
+  "email": {
+    "enable_notify": "all",
+    "notify_address": "admin@example.com",
+    "sender_address": "zmbackup@example.com"
+  },
+  "backup": {
+    "max_parallel_process": 5,
+    "rotate_time": 5000,
+    "lock_backup": true,
+    "backup_inactive_accounts": false,
+    "ssl_enable": true
+  },
+  "session": {
+    "type": "SQLITE3"
+  },
+  "binaries": {
+    "zmmailbox": "/opt/zimbra/bin/zmmailbox"
+  }
+}
