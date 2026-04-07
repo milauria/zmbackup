@@ -9,7 +9,7 @@ Feature: zmbackup migrate-config operation
     Scenario: Successfully migrate legacy config to JSON format
         Given I am running as root
         And I have the config file "legacy_config.conf"
-        When I run the migrate-config command
+        When I run the migrate command
         Then the exit code should be 0
         And the output should contain "Migration completed successfully"
         And the JSON config file should exist
@@ -20,7 +20,7 @@ Feature: zmbackup migrate-config operation
     Scenario: Skip migration if file is already JSON format
         Given I am running as root
         And I have the config file "valid_config.json"
-        When I run the migrate-config command
+        When I run the migrate command
         Then the exit code should be 0
         And the output should contain "already in JSON format"
         And the output should contain "No migration needed"
@@ -28,7 +28,7 @@ Feature: zmbackup migrate-config operation
     Scenario: Migration fails if source file does not exist
         Given I am running as root
         And the config file does not exist
-        When I run the migrate-config command
+        When I run the migrate command
         Then the exit code should be 1
         And the output should contain "Error: Configuration file not found"
 
@@ -36,7 +36,7 @@ Feature: zmbackup migrate-config operation
         Given I am running as root
         And I have the config file "legacy_config.conf"
         And the target JSON file already exists
-        When I run the migrate-config command
+        When I run the migrate command
         Then the exit code should be 1
         And the output should contain "Error: Target file"
         And the output should contain "already exists"
@@ -46,7 +46,7 @@ Feature: zmbackup migrate-config operation
         Given I am running as root
         And I have the config file "legacy_config.conf"
         And the target JSON file already exists
-        When I run the migrate-config command with --force flag
+        When I run the migrate command with --force
         Then the exit code should be 0
         And the output should contain "Migration completed successfully"
         And the JSON config file should exist
@@ -55,7 +55,7 @@ Feature: zmbackup migrate-config operation
     Scenario: Dry run does not modify files
         Given I am running as root
         And I have the config file "legacy_config.conf"
-        When I run the migrate-config command with --dry-run flag
+        When I run the migrate command with --dry-run
         Then the exit code should be 0
         And the output should contain "[Dry Run]"
         And the output should contain "Would migrate"
@@ -65,7 +65,7 @@ Feature: zmbackup migrate-config operation
     Scenario: Migrate to custom output path
         Given I am running as root
         And I have the config file "legacy_config.conf"
-        When I run the migrate-config command with custom output path
+        When I run the migrate command with --output "tmp/custom/config.json"
         Then the exit code should be 0
         And the output should contain "Migration completed successfully"
         And the custom JSON config file should exist
@@ -74,21 +74,21 @@ Feature: zmbackup migrate-config operation
     Scenario: Migration handles invalid legacy config gracefully
         Given I am running as root
         And I have the config file "invalid_legacy_config.conf"
-        When I run the migrate-config command
+        When I run the migrate command
         Then the exit code should be 1
         And the output should contain "Configuration Error"
 
     Scenario: Root requirement for /etc/zmbackup/ path
         Given I am not running as root
         And I have the config file "legacy_config.conf" in /etc/zmbackup/
-        When I run the migrate-config command for /etc/zmbackup/
+        When I run the migrate command with --output /etc/zmbackup/config.json
         Then the exit code should be 1
         And the output should contain "Error: This command must be executed as root"
 
     Scenario: Non-root user can migrate to non-privileged path
         Given I am not running as root
         And I have the config file "legacy_config.conf" in user directory
-        When I run the migrate-config command for user directory
+        When I run the migrate command
         Then the exit code should be 0
         And the output should contain "Migration completed successfully"
         And the JSON config file should exist in user directory
@@ -96,7 +96,7 @@ Feature: zmbackup migrate-config operation
     Scenario: Custom backup suffix
         Given I am running as root
         And I have the config file "legacy_config.conf"
-        When I run the migrate-config command with backup suffix ".backup"
+        When I run the migrate command with --backup-suffix .backup
         Then the exit code should be 0
         And the output should contain "Migration completed successfully"
         And the backup file should exist with suffix ".backup"

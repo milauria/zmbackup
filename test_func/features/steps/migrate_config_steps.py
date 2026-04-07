@@ -1,39 +1,119 @@
 """Step implementations for migrate-config functional tests."""
 
 import json
+import os
+import re
 import shutil
-import sys
-from io import StringIO
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from behave import given, when, then
 from behave.runner import Context
-from click.testing import CliRunner
 
-from operations.migrate_config import migrate_config
+from zmbackup import cli
+from test_func.fixtures.mock_filesystem import MockFileSystem, MockTempFile
 
 
 @given("I have a temporary directory for testing")
 def step_have_temp_directory(context: Context) -> None:
     """
-    Ensure temporary directory is available (already created in environment.py).
+    Ensure temporary directory is available and setup mock filesystem.
     
     :param context: Behave context
     """
     assert context.temp_path.exists(), "Temporary directory not found"
+    
+    # Setup mock filesystem for this scenario
+    context.mock_fs = MockFileSystem()
+    
+    # Pre-load test fixture files into mock filesystem (before patching)
+    test_files_real_dir = context.test_files_dir
+    for filename in os.listdir(test_files_real_dir):
+        file_path = test_files_real_dir / filename
+        if file_path.is_file():
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            # Store in mock filesystem with same structure
+            context.mock_fs.write_text(file_path, content)
+    
+    # Mock Path operations
+    def mock_exists(path_self: Path) -> bool:
+        return context.mock_fs.exists(path_self)
+    
+    def mock_read_text(path_self: Path, encoding: str = "utf-8") -> str:
+        return context.mock_fs.read_text(path_self)
+    
+    def mock_write_text(path_self: Path, content: str, encoding: str = "utf-8") -> None:
+        context.mock_fs.write_text(path_self, content)
+    
+    def mock_mkdir(path_self: Path, parents: bool = False, exist_ok: bool = False) -> None:
+        context.mock_fs.mkdir(path_self, parents=parents, exist_ok=exist_ok)
+    
+    # Mock shutil.copy2
+    def mock_copy2(src: Any, dst: Any) -> Any:
+        context.mock_fs.copy_file(Path(src), Path(dst))
+        return dst
+    
+    # Mock os.rename
+    def mock_rename(src: Any, dst: Any) -> None:
+        content = context.mock_fs.read_text(Path(src))
+        context.mock_fs.write_text(Path(dst), content)
+        context.mock_fs.unlink(Path(src))
+    
+    # Mock os.chmod
+    def mock_chmod(path: Any, mode: int) -> None:
+        pass  # No-op for mocks
+    
+    # Mock tempfile.NamedTemporaryFile
+    def mock_named_temp_file(mode: str = "w", dir: Any = None, delete: bool = True, 
+                             suffix: str = "", encoding: str = "utf-8") -> MockTempFile:
+        dir_path = Path(dir) if dir else context.temp_path
+        return MockTempFile(mode, dir_path, delete, suffix, encoding, context.mock_fs)
+    
+    # Mock open() - now fully uses mock filesystem
+    def mock_open_func(file: Any, mode: str = "r", *args: Any, **kwargs: Any) -> Any:
+        file_path = Path(file) if not isinstance(file, Path) else file
+        
+        # All file operations use mock filesystem
+        if "r" in mode:
+            return context.mock_fs.open_read(file_path, kwargs.get("encoding", "utf-8"))
+        elif "w" in mode:
+            return context.mock_fs.open_write(file_path, kwargs.get("encoding", "utf-8"))
+        
+        # Fallback - should not reach here in tests
+        return context.mock_fs.open_read(file_path, kwargs.get("encoding", "utf-8"))
+    
+    # Apply patches
+    path_exists_patcher = patch.object(Path, "exists", mock_exists)
+    path_read_text_patcher = patch.object(Path, "read_text", mock_read_text)
+    path_write_text_patcher = patch.object(Path, "write_text", mock_write_text)
+    path_mkdir_patcher = patch.object(Path, "mkdir", mock_mkdir)
+    shutil_copy2_patcher = patch("shutil.copy2", mock_copy2)
+    os_rename_patcher = patch("os.rename", mock_rename)
+    os_chmod_patcher = patch("os.chmod", mock_chmod)
+    tempfile_patcher = patch("tempfile.NamedTemporaryFile", mock_named_temp_file)
+    builtins_open_patcher = patch("builtins.open", mock_open_func)
+    
+    # Start all patchers and register cleanup
+    patchers = [path_exists_patcher, path_read_text_patcher, path_write_text_patcher,
+                path_mkdir_patcher, shutil_copy2_patcher, os_rename_patcher,
+                os_chmod_patcher, tempfile_patcher, builtins_open_patcher]
+    
+    for patcher in patchers:
+        patcher.start()
+        context.add_cleanup(patcher.stop)
 
 
 @given('I have the config file "{config_file_name}"')
 def step_have_config_file(context: Context, config_file_name: str) -> None:
     """
-    Copy config file from test-files to temp directory.
+    Copy config file from test-files (in mock fs) to temp directory (in mock fs).
     
     :param context: Behave context
     :param config_file_name: Name of config file in test-files/config/
     """
     source_path = context.test_files_dir / config_file_name
-    assert source_path.exists(), f"Test config file {source_path} not found"
     
     # Store source file name for validation
     context.source_config_file = config_file_name
@@ -45,11 +125,12 @@ def step_have_config_file(context: Context, config_file_name: str) -> None:
         target_filename = "zmbackup.conf"
     
     context.legacy_config_path = context.temp_path / target_filename
-    shutil.copy2(source_path, context.legacy_config_path)
+    # Copy within mock filesystem
+    context.mock_fs.copy_file(source_path, context.legacy_config_path)
     context.expected_json_path = context.temp_path / "zmbackup.json"
-
-
-
+    
+    # Set config_file for generic step
+    context.config_file = context.legacy_config_path
 
 
 @given("the config file does not exist")
@@ -61,39 +142,38 @@ def step_config_does_not_exist(context: Context) -> None:
     """
     context.legacy_config_path = context.temp_path / "nonexistent.conf"
     context.expected_json_path = context.temp_path / "nonexistent.json"
+    context.config_file = context.legacy_config_path
 
 
 @given("the target JSON file already exists")
 def step_target_json_exists(context: Context) -> None:
     """
-    Create an existing target JSON file.
+    Create an existing target JSON file in mock filesystem.
     
     :param context: Behave context
     """
-    context.expected_json_path.write_text('{"version": "1.0", "old": "data"}')
-
-
-
+    context.mock_fs.write_text(context.expected_json_path, '{"version": "1.0", "old": "data"}')
 
 
 @given('I have the config file "{config_file_name}" in /etc/zmbackup/')
 def step_have_config_file_in_etc(context: Context, config_file_name: str) -> None:
     """
-    Copy config file for /etc/zmbackup/ path testing.
+    Copy config file for /etc/zmbackup/ path testing in mock filesystem.
     
     :param context: Behave context
     :param config_file_name: Name of config file in test-files/config/
     """
     source_path = context.test_files_dir / config_file_name
-    assert source_path.exists(), f"Test config file {source_path} not found"
     
     # Store source file name for validation
     context.source_config_file = config_file_name
     
     context.legacy_config_path = context.temp_path / "zmbackup.conf"
-    shutil.copy2(source_path, context.legacy_config_path)
+    # Copy within mock filesystem
+    context.mock_fs.copy_file(source_path, context.legacy_config_path)
     # Simulate /etc/zmbackup/ path
     context.etc_path = Path("/etc/zmbackup/zmbackup.json")
+    context.config_file = context.legacy_config_path
 
 
 @given('I have the config file "{config_file_name}" in user directory')
@@ -115,293 +195,7 @@ def step_have_config_file_in_user_dir(context: Context, config_file_name: str) -
     context.legacy_config_path = context.user_dir / "zmbackup.conf"
     shutil.copy2(source_path, context.legacy_config_path)
     context.expected_json_path = context.user_dir / "zmbackup.json"
-
-
-@when("I run the migrate-config command")
-def step_run_migrate_config(context: Context) -> None:
-    """
-    Execute the migrate-config operation.
-    
-    :param context: Behave context
-    """
-    from operations.migrate_config import ConfigMigrator
-    
-    # Capture stdout and stderr
-    stdout_capture = StringIO()
-    stderr_capture = StringIO()
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-    
-    try:
-        sys.stdout = stdout_capture
-        sys.stderr = stderr_capture
-        
-        migrator = ConfigMigrator(
-            config_path=context.legacy_config_path,
-            output_path=None,
-            backup_suffix=".bak",
-            force=False,
-            dry_run=False
-        )
-        
-        exit_code = migrator.migrate()
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-    
-    # Create a mock result object similar to Click's CliResult
-    class MockResult:
-        def __init__(self, exit_code, output):
-            self.exit_code = exit_code
-            self.output = output
-    
-    combined_output = stdout_capture.getvalue() + stderr_capture.getvalue()
-    context.result = MockResult(exit_code, combined_output)
-
-
-@when("I run the migrate-config command with --force flag")
-def step_run_migrate_config_force(context: Context) -> None:
-    """
-    Execute migrate-config with --force flag.
-    
-    :param context: Behave context
-    """
-    from operations.migrate_config import ConfigMigrator
-    
-    stdout_capture = StringIO()
-    stderr_capture = StringIO()
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-    
-    try:
-        sys.stdout = stdout_capture
-        sys.stderr = stderr_capture
-        
-        migrator = ConfigMigrator(
-            config_path=context.legacy_config_path,
-            output_path=None,
-            backup_suffix=".bak",
-            force=True,
-            dry_run=False
-        )
-        
-        exit_code = migrator.migrate()
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-    
-    class MockResult:
-        def __init__(self, exit_code, output):
-            self.exit_code = exit_code
-            self.output = output
-    
-    combined_output = stdout_capture.getvalue() + stderr_capture.getvalue()
-    context.result = MockResult(exit_code, combined_output)
-
-
-@when("I run the migrate-config command with --dry-run flag")
-def step_run_migrate_config_dry_run(context: Context) -> None:
-    """
-    Execute migrate-config with --dry-run flag.
-    
-    :param context: Behave context
-    """
-    from operations.migrate_config import ConfigMigrator
-    
-    stdout_capture = StringIO()
-    stderr_capture = StringIO()
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-    
-    try:
-        sys.stdout = stdout_capture
-        sys.stderr = stderr_capture
-        
-        migrator = ConfigMigrator(
-            config_path=context.legacy_config_path,
-            output_path=None,
-            backup_suffix=".bak",
-            force=False,
-            dry_run=True
-        )
-        
-        exit_code = migrator.migrate()
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-    
-    class MockResult:
-        def __init__(self, exit_code, output):
-            self.exit_code = exit_code
-            self.output = output
-    
-    combined_output = stdout_capture.getvalue() + stderr_capture.getvalue()
-    context.result = MockResult(exit_code, combined_output)
-
-
-@when("I run the migrate-config command with custom output path")
-def step_run_migrate_config_custom_output(context: Context) -> None:
-    """
-    Execute migrate-config with custom output path.
-    
-    :param context: Behave context
-    """
-    from operations.migrate_config import ConfigMigrator
-    
-    context.custom_output_path = context.temp_path / "custom" / "config.json"
-    
-    stdout_capture = StringIO()
-    stderr_capture = StringIO()
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-    
-    try:
-        sys.stdout = stdout_capture
-        sys.stderr = stderr_capture
-        
-        migrator = ConfigMigrator(
-            config_path=context.legacy_config_path,
-            output_path=context.custom_output_path,
-            backup_suffix=".bak",
-            force=False,
-            dry_run=False
-        )
-        
-        exit_code = migrator.migrate()
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-    
-    class MockResult:
-        def __init__(self, exit_code, output):
-            self.exit_code = exit_code
-            self.output = output
-    
-    combined_output = stdout_capture.getvalue() + stderr_capture.getvalue()
-    context.result = MockResult(exit_code, combined_output)
-
-
-@when("I run the migrate-config command for /etc/zmbackup/")
-def step_run_migrate_config_etc(context: Context) -> None:
-    """
-    Execute migrate-config targeting /etc/zmbackup/ (will check root).
-    
-    :param context: Behave context
-    """
-    from operations.migrate_config import ConfigMigrator
-    
-    stdout_capture = StringIO()
-    stderr_capture = StringIO()
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-    
-    try:
-        sys.stdout = stdout_capture
-        sys.stderr = stderr_capture
-        
-        migrator = ConfigMigrator(
-            config_path=context.legacy_config_path,
-            output_path=context.etc_path,
-            backup_suffix=".bak",
-            force=False,
-            dry_run=False
-        )
-        
-        exit_code = migrator.migrate()
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-    
-    class MockResult:
-        def __init__(self, exit_code, output):
-            self.exit_code = exit_code
-            self.output = output
-    
-    combined_output = stdout_capture.getvalue() + stderr_capture.getvalue()
-    context.result = MockResult(exit_code, combined_output)
-
-
-@when("I run the migrate-config command for user directory")
-def step_run_migrate_config_user_dir(context: Context) -> None:
-    """
-    Execute migrate-config for user directory (non-privileged).
-    
-    :param context: Behave context
-    """
-    from operations.migrate_config import ConfigMigrator
-    
-    stdout_capture = StringIO()
-    stderr_capture = StringIO()
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-    
-    try:
-        sys.stdout = stdout_capture
-        sys.stderr = stderr_capture
-        
-        migrator = ConfigMigrator(
-            config_path=context.legacy_config_path,
-            output_path=None,
-            backup_suffix=".bak",
-            force=False,
-            dry_run=False
-        )
-        
-        exit_code = migrator.migrate()
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-    
-    class MockResult:
-        def __init__(self, exit_code, output):
-            self.exit_code = exit_code
-            self.output = output
-    
-    combined_output = stdout_capture.getvalue() + stderr_capture.getvalue()
-    context.result = MockResult(exit_code, combined_output)
-
-
-@when('I run the migrate-config command with backup suffix "{suffix}"')
-def step_run_migrate_config_custom_suffix(context: Context, suffix: str) -> None:
-    """
-    Execute migrate-config with custom backup suffix.
-    
-    :param context: Behave context
-    :param suffix: Backup file suffix
-    """
-    from operations.migrate_config import ConfigMigrator
-    
-    context.backup_suffix = suffix
-    
-    stdout_capture = StringIO()
-    stderr_capture = StringIO()
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-    
-    try:
-        sys.stdout = stdout_capture
-        sys.stderr = stderr_capture
-        
-        migrator = ConfigMigrator(
-            config_path=context.legacy_config_path,
-            output_path=None,
-            backup_suffix=suffix,
-            force=False,
-            dry_run=False
-        )
-        
-        exit_code = migrator.migrate()
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-    
-    class MockResult:
-        def __init__(self, exit_code, output):
-            self.exit_code = exit_code
-            self.output = output
-    
-    combined_output = stdout_capture.getvalue() + stderr_capture.getvalue()
-    context.result = MockResult(exit_code, combined_output)
+    context.config_file = context.legacy_config_path
 
 
 @then("the JSON config file should exist")

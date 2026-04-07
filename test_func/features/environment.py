@@ -1,12 +1,15 @@
+import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 from behave.runner import Context
 from click.testing import CliRunner
 
 from clients.database_client import DatabaseClient
 from database.session_manager import DatabaseSessionManager
+from test_func.fixtures.mock_filesystem import MockFileSystem, MockTempFile
 
 
 def before_all(context: Context) -> None:
@@ -56,6 +59,7 @@ def after_scenario(context: Context, scenario: Any) -> None:
     """
     clean_database(context=context)
     clean_temp_dir(context=context)
+    clean_project_artifacts(context=context)
 
 
 
@@ -108,3 +112,18 @@ def clean_temp_dir(context: Context) -> None:
     # Cleanup temporary directory
     if hasattr(context, "temp_dir"):
         context.temp_dir.cleanup()
+
+
+def clean_project_artifacts(context: Context) -> None:
+    """
+    Remove artifacts created in project root during tests.
+    
+    :param context: Behave context object
+    """
+    
+    project_root = Path(__file__).parent.parent.parent
+    
+    # Remove custom directory if exists
+    custom_dir = project_root / "custom"
+    if custom_dir.exists():
+        shutil.rmtree(custom_dir)

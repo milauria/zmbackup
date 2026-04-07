@@ -50,6 +50,7 @@ from exceptions import (
 from lib.config import DEFAULT_CONFIG_PATH, get_config
 from lib.constants import ZMBACKUP_VERSION
 from operations.init import run_init
+from operations.migrate_config import migrate_config
 
 
 @click.group(context_settings=dict(help_option_names=["-h", "--help"]))
@@ -338,28 +339,25 @@ def housekeep(ctx: click.Context) -> None:
 
 
 @cli.command()
+@click.option("--output", "-o", "output_path", help="Path for output JSON file")
+@click.option("--backup-suffix", default=".bak", help="Suffix for backup file (default: .bak)")
+@click.option("--force", "-f", is_flag=True, help="Force overwrite if target exists")
+@click.option("--dry-run", is_flag=True, help="Preview migration without writing files")
 @click.pass_context
-def migrate(ctx: click.Context) -> None:
+def migrate(ctx: click.Context, output_path: Optional[str], backup_suffix: str, force: bool, dry_run: bool) -> None:
     """
-    Database migration.
+    Migrate legacy configuration to JSON format.
 
     :param ctx: Click context
+    :param output_path: Path for output JSON file
+    :param backup_suffix: Suffix for backup file
+    :param force: Force overwrite if target exists
+    :param dry_run: Preview migration without writing files
     """
     config_path = ctx.obj["config_path"]
-    try:
-        config = get_config(config_path, reload=True)
-    except (ConfigurationFileNotFoundError, ConfigurationParseError, ConfigurationValidationError) as e:
-        click.echo(f"Configuration error: {e}")
-        sys.exit(1)
-
-    try:
-        # DatabaseClient constructor already calls create_tables()
-        db_manager = DatabaseSessionManager(config.database_path)
-        DatabaseClient(db_manager)
-        click.echo("Database migration completed successfully.")
-    except Exception as e:
-        click.echo(f"Error during migration: {e}")
-        sys.exit(1)
+    migrate_config(
+        config_path=config_path, output_path=output_path, backup_suffix=backup_suffix, force=force, dry_run=dry_run
+    )
 
 
 @cli.command()

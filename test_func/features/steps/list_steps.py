@@ -200,37 +200,6 @@ def step_invalid_database_config(context: Context) -> None:
     context.config_file = config_path
 
 
-@when("I run the list command")
-def step_run_list_command(context: Context) -> None:
-    """
-    Execute zmbackup list command with test config.
-
-    :param context: Behave context
-    """
-    result = context.cli_runner.invoke(
-        cli, ["--config-path", str(context.config_file), "list"], catch_exceptions=False
-    )
-
-    context.result = result
-
-    # Parse table output if present
-    context.parsed_table = parse_prettytable_output(result.output)
-
-
-@then('the output should contain "{text}"')
-def step_output_contains(context: Context, text: str) -> None:
-    """
-    Verify output contains expected text.
-
-    :param context: Behave context
-    :param text: Expected text
-    """
-    assert context.result is not None, "No command has been run"
-    assert text in context.result.output, (
-        f"Output does not contain '{text}'. " f"Output was: {context.result.output}"
-    )
-
-
 @then("the output should contain a table with {count:d} row")
 @then("the output should contain a table with {count:d} rows")
 def step_verify_table_row_count(context: Context, count: int) -> None:
@@ -281,20 +250,6 @@ def step_verify_row_data_json(context: Context, row_num: int, file_path: str) ->
 
     for expected_values in data_list:
         assert_row_contains(context.parsed_table, row_index, expected_values)
-
-
-@then("the exit code should be {code:d}")
-def step_verify_exit_code(context: Context, code: int) -> None:
-    """
-    Verify command exit code.
-
-    :param context: Behave context
-    :param code: Expected exit code
-    """
-    assert context.result is not None, "No command has been run"
-    assert context.result.exit_code == code, (
-        f"Expected exit code {code}, got {context.result.exit_code}"
-    )
 
 
 @then('the output should contain "N/A" for missing fields')

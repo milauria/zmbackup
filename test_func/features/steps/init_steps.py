@@ -32,19 +32,6 @@ def step_not_running_as_root(context: Context) -> None:
     context.add_cleanup(patcher.stop)
 
 
-@when("I run the init command")
-def step_run_init_no_input(context: Context) -> None:
-    """
-    Execute zmbackup init command.
-    
-    :param context: Behave context
-    """
-    result = context.cli_runner.invoke(
-        cli, ["--config-path", str(context.config_file), "init"], catch_exceptions=False
-    )
-    context.result = result
-
-
 @when('I run the init command and provide inputs from "{file_path}"')
 def step_run_init_with_inputs(context: Context, file_path: str) -> None:
     """
