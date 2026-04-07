@@ -8,7 +8,7 @@ Feature: zmbackup migrate-config operation
 
     Scenario: Successfully migrate legacy config to JSON format
         Given I am running as root
-        And I have a legacy config file
+        And I have the config file "legacy_config.conf"
         When I run the migrate-config command
         Then the exit code should be 0
         And the output should contain "Migration completed successfully"
@@ -19,7 +19,7 @@ Feature: zmbackup migrate-config operation
 
     Scenario: Skip migration if file is already JSON format
         Given I am running as root
-        And I have a JSON config file
+        And I have the config file "valid_config.json"
         When I run the migrate-config command
         Then the exit code should be 0
         And the output should contain "already in JSON format"
@@ -34,7 +34,7 @@ Feature: zmbackup migrate-config operation
 
     Scenario: Migration fails if target exists without --force flag
         Given I am running as root
-        And I have a legacy config file
+        And I have the config file "legacy_config.conf"
         And the target JSON file already exists
         When I run the migrate-config command
         Then the exit code should be 1
@@ -44,7 +44,7 @@ Feature: zmbackup migrate-config operation
 
     Scenario: Force overwrite existing JSON file
         Given I am running as root
-        And I have a legacy config file
+        And I have the config file "legacy_config.conf"
         And the target JSON file already exists
         When I run the migrate-config command with --force flag
         Then the exit code should be 0
@@ -54,7 +54,7 @@ Feature: zmbackup migrate-config operation
 
     Scenario: Dry run does not modify files
         Given I am running as root
-        And I have a legacy config file
+        And I have the config file "legacy_config.conf"
         When I run the migrate-config command with --dry-run flag
         Then the exit code should be 0
         And the output should contain "[Dry Run]"
@@ -64,7 +64,7 @@ Feature: zmbackup migrate-config operation
 
     Scenario: Migrate to custom output path
         Given I am running as root
-        And I have a legacy config file
+        And I have the config file "legacy_config.conf"
         When I run the migrate-config command with custom output path
         Then the exit code should be 0
         And the output should contain "Migration completed successfully"
@@ -73,21 +73,21 @@ Feature: zmbackup migrate-config operation
 
     Scenario: Migration handles invalid legacy config gracefully
         Given I am running as root
-        And I have an invalid legacy config file
+        And I have the config file "invalid_legacy_config.conf"
         When I run the migrate-config command
         Then the exit code should be 1
         And the output should contain "Configuration Error"
 
     Scenario: Root requirement for /etc/zmbackup/ path
         Given I am not running as root
-        And I have a legacy config file in /etc/zmbackup/
+        And I have the config file "legacy_config.conf" in /etc/zmbackup/
         When I run the migrate-config command for /etc/zmbackup/
         Then the exit code should be 1
         And the output should contain "Error: This command must be executed as root"
 
     Scenario: Non-root user can migrate to non-privileged path
         Given I am not running as root
-        And I have a legacy config file in user directory
+        And I have the config file "legacy_config.conf" in user directory
         When I run the migrate-config command for user directory
         Then the exit code should be 0
         And the output should contain "Migration completed successfully"
@@ -95,7 +95,7 @@ Feature: zmbackup migrate-config operation
 
     Scenario: Custom backup suffix
         Given I am running as root
-        And I have a legacy config file
+        And I have the config file "legacy_config.conf"
         When I run the migrate-config command with backup suffix ".backup"
         Then the exit code should be 0
         And the output should contain "Migration completed successfully"

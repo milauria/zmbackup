@@ -24,78 +24,32 @@ def step_have_temp_directory(context: Context) -> None:
     assert context.temp_path.exists(), "Temporary directory not found"
 
 
-@given("I have a legacy config file")
-def step_create_legacy_config(context: Context) -> None:
+@given('I have the config file "{config_file_name}"')
+def step_have_config_file(context: Context, config_file_name: str) -> None:
     """
-    Create a legacy KEY=VALUE configuration file.
+    Copy config file from test-files to temp directory.
     
     :param context: Behave context
+    :param config_file_name: Name of config file in test-files/config/
     """
-    context.legacy_config_path = context.temp_path / "zmbackup.conf"
-    legacy_content = """# Legacy configuration
-BACKUPUSER=zimbra
-WORKDIR=/opt/zimbra/backup
-LDAPSERVER=ldap://localhost:389
-LDAPADMIN=uid=zimbra,cn=admins,cn=zimbra
-LDAPPASS=secretpassword
-LOGFILE=/opt/zimbra/log/zmbackup.log
-ENABLE_EMAIL_NOTIFY=all
-EMAIL_NOTIFY=admin@example.com
-EMAIL_SENDER=zmbackup@example.com
-MAX_PARALLEL_PROCESS=5
-ROTATE_TIME=30
-LOCK_BACKUP=true
-SESSION_TYPE=SQLITE3
-BACKUP_INACTIVE_ACCOUNTS=false
-SSL_ENABLE=true
-ZMMAILBOX=/opt/zimbra/bin/zmmailbox
-"""
-    context.legacy_config_path.write_text(legacy_content)
+    source_path = context.test_files_dir / config_file_name
+    assert source_path.exists(), f"Test config file {source_path} not found"
+    
+    # Store source file name for validation
+    context.source_config_file = config_file_name
+    
+    # Determine target filename
+    if config_file_name.endswith('.json'):
+        target_filename = "zmbackup.json"
+    else:
+        target_filename = "zmbackup.conf"
+    
+    context.legacy_config_path = context.temp_path / target_filename
+    shutil.copy2(source_path, context.legacy_config_path)
     context.expected_json_path = context.temp_path / "zmbackup.json"
 
 
-@given("I have a JSON config file")
-def step_create_json_config(context: Context) -> None:
-    """
-    Create a JSON configuration file.
-    
-    :param context: Behave context
-    """
-    context.json_config_path = context.temp_path / "zmbackup.json"
-    json_content = {
-        "version": "1.0",
-        "zimbra": {
-            "backup_user": "zimbra",
-            "workdir": "/opt/zimbra/backup",
-            "ldap_server": "ldap://localhost:389",
-            "ldap_admin": "uid=zimbra,cn=admins,cn=zimbra",
-            "ldap_password": "secret"
-        },
-        "logging": {
-            "log_file": "/opt/zimbra/log/zmbackup.log"
-        },
-        "email": {
-            "enable_notify": "all",
-            "notify_address": "admin@example.com",
-            "sender_address": "zmbackup@example.com"
-        },
-        "backup": {
-            "max_parallel_process": 5,
-            "rotate_time": 30,
-            "lock_backup": True,
-            "backup_inactive_accounts": False,
-            "ssl_enable": True
-        },
-        "session": {
-            "type": "SQLITE3"
-        },
-        "binaries": {
-            "zmmailbox": "/opt/zimbra/bin/zmmailbox"
-        }
-    }
-    with open(context.json_config_path, "w") as f:
-        json.dump(json_content, f, indent=2)
-    context.legacy_config_path = context.json_config_path
+
 
 
 @given("the config file does not exist")
@@ -119,95 +73,47 @@ def step_target_json_exists(context: Context) -> None:
     context.expected_json_path.write_text('{"version": "1.0", "old": "data"}')
 
 
-@given("I have an invalid legacy config file")
-def step_create_invalid_legacy_config(context: Context) -> None:
-    """
-    Create an invalid legacy configuration file.
-    
-    :param context: Behave context
-    """
-    context.legacy_config_path = context.temp_path / "invalid.conf"
-    # Invalid email will trigger validation error
-    invalid_content = """BACKUPUSER=zimbra
-WORKDIR=/opt/zimbra/backup
-LDAPSERVER=ldap://localhost:389
-LDAPADMIN=uid=zimbra,cn=admins,cn=zimbra
-LDAPPASS=secret
-LOGFILE=/opt/zimbra/log/zmbackup.log
-ENABLE_EMAIL_NOTIFY=all
-EMAIL_NOTIFY=invalid-email-format
-EMAIL_SENDER=also-invalid
-MAX_PARALLEL_PROCESS=5
-ROTATE_TIME=30
-LOCK_BACKUP=true
-SESSION_TYPE=SQLITE3
-BACKUP_INACTIVE_ACCOUNTS=false
-SSL_ENABLE=true
-ZMMAILBOX=/opt/zimbra/bin/zmmailbox
-"""
-    context.legacy_config_path.write_text(invalid_content)
-    context.expected_json_path = context.temp_path / "invalid.json"
 
 
-@given("I have a legacy config file in /etc/zmbackup/")
-def step_create_legacy_in_etc(context: Context) -> None:
+
+@given('I have the config file "{config_file_name}" in /etc/zmbackup/')
+def step_have_config_file_in_etc(context: Context, config_file_name: str) -> None:
     """
-    Set up context for /etc/zmbackup/ path (won't actually create in /etc).
+    Copy config file for /etc/zmbackup/ path testing.
     
     :param context: Behave context
+    :param config_file_name: Name of config file in test-files/config/
     """
-    # For testing, we'll use a temp path but tell the migrator it's /etc/zmbackup/
+    source_path = context.test_files_dir / config_file_name
+    assert source_path.exists(), f"Test config file {source_path} not found"
+    
+    # Store source file name for validation
+    context.source_config_file = config_file_name
+    
     context.legacy_config_path = context.temp_path / "zmbackup.conf"
-    legacy_content = """BACKUPUSER=zimbra
-WORKDIR=/opt/zimbra/backup
-LDAPSERVER=ldap://localhost:389
-LDAPADMIN=uid=zimbra,cn=admins,cn=zimbra
-LDAPPASS=secret
-LOGFILE=/opt/zimbra/log/zmbackup.log
-ENABLE_EMAIL_NOTIFY=all
-EMAIL_NOTIFY=admin@example.com
-EMAIL_SENDER=zmbackup@example.com
-MAX_PARALLEL_PROCESS=5
-ROTATE_TIME=30
-LOCK_BACKUP=true
-SESSION_TYPE=SQLITE3
-BACKUP_INACTIVE_ACCOUNTS=false
-SSL_ENABLE=true
-ZMMAILBOX=/opt/zimbra/bin/zmmailbox
-"""
-    context.legacy_config_path.write_text(legacy_content)
+    shutil.copy2(source_path, context.legacy_config_path)
     # Simulate /etc/zmbackup/ path
     context.etc_path = Path("/etc/zmbackup/zmbackup.json")
 
 
-@given("I have a legacy config file in user directory")
-def step_create_legacy_in_user_dir(context: Context) -> None:
+@given('I have the config file "{config_file_name}" in user directory')
+def step_have_config_file_in_user_dir(context: Context, config_file_name: str) -> None:
     """
-    Create a legacy config in user (non-privileged) directory.
+    Copy config file to user (non-privileged) directory.
     
     :param context: Behave context
+    :param config_file_name: Name of config file in test-files/config/
     """
+    source_path = context.test_files_dir / config_file_name
+    assert source_path.exists(), f"Test config file {source_path} not found"
+    
+    # Store source file name for validation
+    context.source_config_file = config_file_name
+    
     context.user_dir = context.temp_path / "user_config"
     context.user_dir.mkdir(exist_ok=True)
     context.legacy_config_path = context.user_dir / "zmbackup.conf"
-    legacy_content = """BACKUPUSER=zimbra
-WORKDIR=/opt/zimbra/backup
-LDAPSERVER=ldap://localhost:389
-LDAPADMIN=uid=zimbra,cn=admins,cn=zimbra
-LDAPPASS=secret
-LOGFILE=/opt/zimbra/log/zmbackup.log
-ENABLE_EMAIL_NOTIFY=all
-EMAIL_NOTIFY=admin@example.com
-EMAIL_SENDER=zmbackup@example.com
-MAX_PARALLEL_PROCESS=5
-ROTATE_TIME=30
-LOCK_BACKUP=true
-SESSION_TYPE=SQLITE3
-BACKUP_INACTIVE_ACCOUNTS=false
-SSL_ENABLE=true
-ZMMAILBOX=/opt/zimbra/bin/zmmailbox
-"""
-    context.legacy_config_path.write_text(legacy_content)
+    shutil.copy2(source_path, context.legacy_config_path)
     context.expected_json_path = context.user_dir / "zmbackup.json"
 
 
@@ -558,27 +464,39 @@ def step_json_contains_version(context: Context, version: str) -> None:
 @then("the JSON config should have correct values from legacy config")
 def step_json_has_correct_values(context: Context) -> None:
     """
-    Verify the JSON config has correctly migrated values from legacy.
+    Verify the JSON config has correctly migrated values from source config.
     
     :param context: Behave context
     """
     with open(context.expected_json_path, "r") as f:
         config_data = json.load(f)
     
-    # Verify key values
+    # Load expected values from source config file
+    source_path = context.test_files_dir / context.source_config_file
+    
+    # Parse source config (KEY=VALUE format)
+    expected_values = {}
+    with open(source_path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                expected_values[key.strip()] = value.strip()
+    
+    # Verify key values from source config
     assert config_data["version"] == "1.0"
-    assert config_data["zimbra"]["backup_user"] == "zimbra"
-    assert config_data["zimbra"]["workdir"] == "/opt/zimbra/backup"
-    assert config_data["zimbra"]["ldap_server"] == "ldap://localhost:389"
-    assert config_data["zimbra"]["ldap_password"] == "secretpassword"
-    assert config_data["email"]["notify_address"] == "admin@example.com"
-    assert config_data["email"]["sender_address"] == "zmbackup@example.com"
-    assert config_data["backup"]["max_parallel_process"] == 5
-    assert config_data["backup"]["rotate_time"] == 30
-    assert config_data["backup"]["lock_backup"] is True
-    assert config_data["backup"]["backup_inactive_accounts"] is False
-    assert config_data["backup"]["ssl_enable"] is True
-    assert config_data["session"]["type"] == "SQLITE3"
+    assert config_data["zimbra"]["backup_user"] == expected_values["BACKUPUSER"]
+    assert config_data["zimbra"]["workdir"] == expected_values["WORKDIR"]
+    assert config_data["zimbra"]["ldap_server"] == expected_values["LDAPSERVER"]
+    assert config_data["zimbra"]["ldap_password"] == expected_values["LDAPPASS"]
+    assert config_data["email"]["notify_address"] == expected_values["EMAIL_NOTIFY"]
+    assert config_data["email"]["sender_address"] == expected_values["EMAIL_SENDER"]
+    assert config_data["backup"]["max_parallel_process"] == int(expected_values["MAX_PARALLEL_PROCESS"])
+    assert config_data["backup"]["rotate_time"] == int(expected_values["ROTATE_TIME"])
+    assert config_data["backup"]["lock_backup"] is (expected_values["LOCK_BACKUP"].lower() in ["true", "yes", "1"])
+    assert config_data["backup"]["backup_inactive_accounts"] is (expected_values["BACKUP_INACTIVE_ACCOUNTS"].lower() in ["true", "yes", "1"])
+    assert config_data["backup"]["ssl_enable"] is (expected_values["SSL_ENABLE"].lower() in ["true", "yes", "1"])
+    assert config_data["session"]["type"] == expected_values["SESSION_TYPE"]
 
 
 @then("the custom JSON config file should exist")
@@ -594,17 +512,29 @@ def step_custom_json_exists(context: Context) -> None:
 @then("the custom JSON config should have correct values from legacy config")
 def step_custom_json_has_correct_values(context: Context) -> None:
     """
-    Verify the custom JSON config has correctly migrated values.
+    Verify the custom JSON config has correctly migrated values from source config.
     
     :param context: Behave context
     """
     with open(context.custom_output_path, "r") as f:
         config_data = json.load(f)
     
-    # Verify key values
+    # Load expected values from source config file
+    source_path = context.test_files_dir / context.source_config_file
+    
+    # Parse source config (KEY=VALUE format)
+    expected_values = {}
+    with open(source_path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                expected_values[key.strip()] = value.strip()
+    
+    # Verify key values from source config
     assert config_data["version"] == "1.0"
-    assert config_data["zimbra"]["backup_user"] == "zimbra"
-    assert config_data["email"]["notify_address"] == "admin@example.com"
+    assert config_data["zimbra"]["backup_user"] == expected_values["BACKUPUSER"]
+    assert config_data["email"]["notify_address"] == expected_values["EMAIL_NOTIFY"]
 
 
 @then("the JSON config file should exist in user directory")

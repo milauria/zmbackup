@@ -10,7 +10,7 @@ from enums import EmailNotifyLevel, SessionType
 from lib.config import ZmbackupConfig
 
 # Test files directory
-TEST_FILES_DIR = Path(__file__).parent / "test-files" / "config"
+TEST_FILES_DIR = Path(__file__).parent.parent / "test-files" / "config"
 
 
 @pytest.fixture
